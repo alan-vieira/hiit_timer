@@ -1,0 +1,13 @@
+app:
+  name: HIIT Timer
+  org: com.hiit
+  version: 1.0.0
+  build: 1
+  android:
+    permissions:
+      - android.permission.VIBRATE
+      - android.permission.WAKE_LOCK
+      - android.permission.FOREGROUND_SERVICE
+    min_sdk_version: 24
+    target_sdk_version: 34
+    compile_sdk_version: 34
