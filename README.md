@@ -1,109 +1,59 @@
 # HIIT Timer
 
-Aplicativo de cronômetro HIIT (High-Intensity Interval Training) desenvolvido com Python 3.12, Flet 0.86.5 e Material Design 3. Build nativo para Android.
+Aplicativo de cronômetro para treinos HIIT (High-Intensity Interval Training) desenvolvido em Python 3.12 com Flet (Material Design 3) e compilado nativamente para Android.
 
-## Funcionalidades
+## Visão Geral
+Ferramenta personalizada para gerenciamento de treinos intervalados, permitindo configuração granular de exercícios, durações e ciclos de descanso. O aplicativo prioriza precisão no timing, feedback sensorial (vibração/áudio) e prevenção de suspensão da tela durante a execução.
 
-- Timer preciso com asyncio
-- 4 telas: Configuração, Editor de Exercícios, Cronômetro Ativo, Fim do Treino
-- Ring visual gigante com mudança de cor (exercício/descanso)
-- Vibração ao trocar de fase
-- Beep sonoro nos últimos 3 segundos
-- Controles: Pausar, Pular, Voltar
-- Tela cheia durante o treino
-- Prevenção de sono da tela
-- Slider para ajustar ciclos (1-20)
-- Tema escuro Material Design 3
-- Editor de exercícios personalizáveis
+## Funcionalidades Técnicas
+- **Motor de Tempo**: Cronômetro assíncrono (`asyncio`) com precisão de segundo a segundo.
+- **Gerenciamento de Estado**: Store centralizado para controle de ciclos, fases (exercício/intervalo) e configurações.
+- **Feedback do Sistema**: Vibração (haptic feedback) nas transições de fase e alerta sonoro (beep) nos últimos 3 segundos.
+- **UX/Otimização**: Modo tela cheia (fullscreen), prevenção de bloqueio de tela (wake lock) e interface adaptativa com tema escuro Material Design 3.
+- **Configuração**: Editor integrado para personalizar até 20 ciclos, com durações independentes.
 
-## Instalação
+## Estrutura do Projeto
+```text
+hiit_timer/
+├── screens/ # Camada de apresentação (UI)
+│ ├── config_screen.py # Tela de configuração inicial
+│ ├── exercise_editor_screen.py # Editor de parâmetros do treino
+│ ├── timer_screen.py # Tela principal do cronômetro (ring visual)
+│ └── finish_screen.py # Tela de resumo/fim do treino
+├── components/ # Componentes de UI reutilizáveis
+├── utils/ # Funções auxiliares (helpers de formatação e async)
+├── main.py # Ponto de entrada e inicialização do app Flet
+├── workout.py # Lógica de negócio e orquestração do treino
+├── store.py # Gerenciamento de estado global
+├── flet_build.yaml # Configurações de build para Android
+└── requirements.txt # Dependências do projeto
+```
+
+## Setup e Execução Local
 
 ### Pré-requisitos
 - Python 3.12+
 - Git
 
-### Passos
+### Instalação
 
 ```bash
-# Clonar/entrar no projeto
 cd hiit_timer
-
-# Criar e ativar ambiente virtual (Python 3.12)
-py -3.12 -m venv venv
-venv\Scripts\activate
-
-# Instalar dependências
+python -m venv venv
+venv\Scripts\activate # Windows (use 'source venv/bin/activate' no Linux/macOS)
 pip install -r requirements.txt
-
-# Executar
 python main.py
 ```
 
 ## Build para Android
+Para gerar o pacote de instalação (.apk):
 
 ```bash
-# Com a venv ativada
 flet build apk --release
 ```
 
-O APK será gerado em:
-```
-build/app/outputs/flutter-apk/app-release.apk
-```
+Saída: O arquivo será gerado em `build/app/outputs/flutter-apk/app-release.apk`.
 
-### Instalar no dispositivo Android
+---
 
-```bash
-# Via ADB (dispositivo conectado via USB)
-adb install build/app/outputs/flutter-apk/app-release.apk
-```
-
-Ou transfira o APK para o celular e instale manualmente.
-
-## Estrutura do Projeto
-
-```
-hiit_timer/
-├── main.py                 # Aplicação principal
-├── flet_build.yaml         # Configuração de build Android
-├── requirements.txt        # Dependências Python
-├── README.md               # Este arquivo
-├── workout.py              # Dados do treino e helpers
-├── store.py                # Estado global (store)
-├── utils/
-│   └── helpers.py          # Funções utilitárias
-├── components/
-│   ├── ring_timer.py       # Ring gigante do cronômetro
-│   ├── exercise_row.py     # Linha da lista de exercícios
-│   ├── top_stats.py        # Stats no topo (ciclo, tempo, etc)
-│   └── controls_bar.py     # Barra de controles (pause, skip)
-└── screens/
-    ├── config_screen.py    # Tela de configuração/inicial
-    ├── timer_screen.py     # Tela do cronômetro ativo
-    ├── finish_screen.py    # Tela de fim de treino
-    └── exercise_editor_screen.py  # Editor de exercícios
-```
-
-## Tecnologias
-
-- Python 3.12
-- Flet 0.86.5 (Flutter wrapper)
-- Material Design 3
-- asyncio para timer assíncrono
-
-## Como Usar
-
-1. Abra o app na tela de **Configuração**
-2. Ajuste o número de ciclos (1-20) no slider
-3. Opcional: clique em "Editar Exercícios" para personalizar nomes, emojis e durações
-4. Clique em **Iniciar Treino**
-5. Na tela do **Cronômetro**: use Pausar, Pular ou Voltar conforme necessário
-6. Ao finalizar, a tela de **Fim de Treino** mostra o resumo
-
-## Contribuindo
-
-Veja [CONTRIBUTING.md](CONTRIBUTING.md) para diretrizes de contribuição.
-
-## Licença
-
-MIT License - Sinta-se livre para usar e modificar.
+*Documento de referência técnica. Última atualização: Setembro 2026.*
