@@ -26,8 +26,8 @@ def ExerciseRow(etapa: Etapa, indice_atual=None):
     bg_color = ft.Colors.SURFACE_CONTAINER_HIGHEST if is_atual else ft.Colors.SURFACE
     border_color = ft.Colors.PRIMARY if is_atual else ft.Colors.OUTLINE_VARIANT
     return ft.Container(
-        padding=ft.padding.Padding.symmetric(horizontal=16, vertical=12),
-        margin=ft.margin.Margin(left=0, top=0, right=0, bottom=8),
+        padding=ft.Padding(16, 12, 16, 12),
+        margin=ft.Margin(0, 0, 0, 8),
         border_radius=12,
         bgcolor=bg_color,
         border=ft.border.Border(
@@ -50,7 +50,7 @@ def ExerciseRow(etapa: Etapa, indice_atual=None):
                     ]),
                 ]),
                 ft.Row(spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=[
-                    ft.Container(padding=ft.padding.Padding.symmetric(horizontal=10, vertical=4), border_radius=20,
+                    ft.Container(padding=ft.Padding(10, 4, 10, 4), border_radius=20,
                         bgcolor=badge_colors[etapa.tipo],
                         content=ft.Text(badge_labels[etapa.tipo], size=10, weight=ft.FontWeight.BOLD,
                             color=badge_text_colors[etapa.tipo])),

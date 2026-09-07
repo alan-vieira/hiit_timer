@@ -1,8 +1,8 @@
 app:
   name: HIIT Timer
   org: com.hiit
-  version: 1.0.1
-  build: 2
+  version: 1.1.0
+  build: 3
   android:
     permissions:
       - android.permission.VIBRATE
@@ -10,4 +10,3 @@ app:
       - android.permission.FOREGROUND_SERVICE
     min_sdk_version: 24
     target_sdk_version: 34
-    compile_sdk_version: 34

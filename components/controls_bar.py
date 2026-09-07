@@ -7,7 +7,7 @@ import flet as ft
 
 def ControlsBar(on_voltar, on_pausar, on_pular, esta_pausado=False, desabilitado=False):
     return ft.Container(
-        padding=ft.padding.Padding.symmetric(horizontal=24, vertical=16),
+        padding=ft.Padding(24, 16, 24, 16),
         content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_EVENLY, controls=[
             ft.IconButton(icon=ft.Icons.REPLAY_10, icon_size=28, tooltip="Voltar",
                 on_click=lambda _: on_voltar() if not desabilitado else None, disabled=desabilitado,
@@ -44,7 +44,7 @@ def BotaoPrincipal(texto, on_click, icone=None, desabilitado=False, expandir=Fal
             on_click=lambda _: on_click() if not desabilitado else None,
             disabled=desabilitado,
             style=ft.ButtonStyle(
-                padding=ft.padding.Padding.symmetric(horizontal=32, vertical=16),
+                padding=ft.Padding(32, 16, 32, 16),
                 shape=ft.RoundedRectangleBorder(radius=16),
                 bgcolor=cor_fundo or ft.Colors.SECONDARY_CONTAINER,
                 color=ft.Colors.ON_SECONDARY_CONTAINER),

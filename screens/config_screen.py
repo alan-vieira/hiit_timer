@@ -14,7 +14,7 @@ def ConfigScreen(page: ft.Page, on_iniciar, num_ciclos_inicial=3, on_navegar_edi
 
     txt_ciclos_valor = ft.Text(str(estado["ciclos"]), size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.PRIMARY)
     txt_footer = ft.Text("", size=14, weight=ft.FontWeight.W_500, color=ft.Colors.ON_SURFACE_VARIANT, text_align=ft.TextAlign.CENTER)
-    lv_etapas = ft.ListView(spacing=0, padding=ft.padding.Padding.only(bottom=100))
+    lv_etapas = ft.ListView(spacing=0, padding=ft.Padding(0, 0, 0, 100))
     chips_container = ft.Row(alignment=ft.MainAxisAlignment.SPACE_AROUND)
 
     def rebuild():
@@ -22,7 +22,7 @@ def ConfigScreen(page: ft.Page, on_iniciar, num_ciclos_inicial=3, on_navegar_edi
         etapas = gerar_etapas(store.config, nc)
         stats = stats_treino(store.config, nc)
         txt_ciclos_valor.value = str(nc)
-        txt_footer.value = f"Repetir x{nc} \u2022 {len(store.config.exercicios)} exercícios"
+        txt_footer.value = f"Repetir x{nc} \u2022 {len(store.config.exercicios)} exerc\u00edcios"
         chips_container.controls = [
             _StatChip("CICLOS", str(nc), ft.Colors.PRIMARY),
             _StatChip("TEMPO", stats["tempo_total_fmt"], ft.Colors.SECONDARY),
@@ -53,17 +53,17 @@ def ConfigScreen(page: ft.Page, on_iniciar, num_ciclos_inicial=3, on_navegar_edi
         ),
         bgcolor=ft.Colors.SURFACE,
         controls=[
-            ft.Container(padding=ft.padding.Padding.symmetric(horizontal=16, vertical=12), content=chips_container),
-            ft.Container(padding=ft.padding.Padding.symmetric(horizontal=16, vertical=8), content=ft.Column(spacing=8, controls=[
+            ft.Container(padding=ft.Padding(16, 12, 16, 12), content=chips_container),
+            ft.Container(padding=ft.Padding(16, 8, 16, 8), content=ft.Column(spacing=8, controls=[
                 ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                    ft.Text("NÚMERO DE CICLOS", size=12, weight=ft.FontWeight.W_500, color=ft.Colors.ON_SURFACE_VARIANT),
+                    ft.Text("N\u00daMERO DE CICLOS", size=12, weight=ft.FontWeight.W_500, color=ft.Colors.ON_SURFACE_VARIANT),
                     txt_ciclos_valor,
                 ]),
                 ft.Slider(value=estado["ciclos"], min=1, max=10, divisions=9, label="{value}",
                     on_change=ao_mudar_ciclos, active_color=ft.Colors.PRIMARY, inactive_color=ft.Colors.OUTLINE_VARIANT),
             ])),
-            ft.Container(padding=ft.padding.Padding.symmetric(horizontal=8), expand=True, content=lv_etapas),
-            ft.Container(padding=ft.padding.Padding.all(16), bgcolor=ft.Colors.SURFACE,
+            ft.Container(padding=ft.Padding(8, 0, 8, 0), expand=True, content=lv_etapas),
+            ft.Container(padding=ft.Padding(16, 16, 16, 16), bgcolor=ft.Colors.SURFACE,
                 border=ft.border.Border(
                     top=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT),
                     right=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT),

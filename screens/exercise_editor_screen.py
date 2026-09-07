@@ -1,6 +1,4 @@
-"""
-Tela de Edição de Exercícios e Intervalos.
-"""
+"""Tela de Edição de Exercícios e Intervalos (Otimizada)."""
 
 import flet as ft
 from workout import ExercicioConfig, WorkoutConfig
@@ -28,20 +26,24 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
             tf_dur = ft.TextField(value=str(ex.duracao), width=70, keyboard_type=ft.KeyboardType.NUMBER, text_align=ft.TextAlign.CENTER, suffix="s")
             btn_del = ft.IconButton(icon=ft.Icons.DELETE_OUTLINE, icon_color=ft.Colors.ERROR, disabled=len(local["exercicios"]) <= 1)
 
-            def on_emoji_change(e, i=i):
-                local["exercicios"][i] = ExercicioConfig(local["exercicios"][i].nome, e.control.value or "\U0001f3c3", local["exercicios"][i].duracao)
-            def on_nome_change(e, i=i):
-                local["exercicios"][i] = ExercicioConfig(e.control.value or "Exercício", local["exercicios"][i].emoji, local["exercicios"][i].duracao)
-            def on_dur_change(e, i=i):
+            # Handlers que APENAS mutam o estado, SEM chamar rebuild_list()
+            def on_emoji_change(e, idx=i):
+                local["exercicios"][idx].emoji = e.control.value or "🏃"
+            
+            def on_nome_change(e, idx=i):
+                local["exercicios"][idx].nome = e.control.value or "Exercício"
+            
+            def on_dur_change(e, idx=i):
                 try:
                     v = int(e.control.value) if e.control.value else 30
                 except ValueError:
                     v = 30
-                local["exercicios"][i] = ExercicioConfig(local["exercicios"][i].nome, local["exercicios"][i].emoji, v)
-            def on_del(_, i=i):
+                local["exercicios"][idx].duracao = v
+
+            def on_del(_, idx=i):
                 if len(local["exercicios"]) > 1:
-                    local["exercicios"].pop(i)
-                    rebuild_list()
+                    local["exercicios"].pop(idx)
+                    rebuild_list()  # Só rebuilda ao adicionar/remover, NÃO ao digitar
                     page.update()
 
             tf_emoji.on_change = on_emoji_change
@@ -70,7 +72,7 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
     tf_ciclo.on_change = on_ciclo_change
 
     def add_exercicio():
-        local["exercicios"].append(ExercicioConfig("Novo Exercício", "\U0001f3c3", 45))
+        local["exercicios"].append(ExercicioConfig("Novo Exercício", "🏃", 45))
         rebuild_list()
 
     def handle_save():
@@ -87,7 +89,7 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
     return ft.View(route="/editor", bgcolor=ft.Colors.SURFACE,
         appbar=ft.AppBar(title=ft.Text("Personalizar Treino", weight=ft.FontWeight.BOLD), center_title=True, bgcolor=ft.Colors.SURFACE),
         controls=[ft.SafeArea(content=ft.Column(expand=True, controls=[
-            ft.Container(padding=16, margin=ft.margin.Margin.all(16), border_radius=12, bgcolor=ft.Colors.SURFACE_CONTAINER,
+            ft.Container(padding=16, margin=ft.Margin(16, 16, 16, 16), border_radius=12, bgcolor=ft.Colors.SURFACE_CONTAINER,
                 content=ft.Column(spacing=12, controls=[
                     ft.Text("DURAÇÃO DOS INTERVALOS", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE_VARIANT),
                     ft.Row([
@@ -95,12 +97,12 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
                         ft.Column([ft.Text("Descanso Longo (s)", size=12), tf_ciclo]),
                     ], alignment=ft.MainAxisAlignment.SPACE_AROUND),
                 ])),
-            ft.Container(padding=ft.padding.Padding.symmetric(horizontal=16),
+            ft.Container(padding=ft.Padding(16, 0, 16, 0),
                 content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
                     ft.Text("EXERCÍCIOS", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE_VARIANT),
                     ft.TextButton("ADICIONAR", icon=ft.Icons.ADD, on_click=lambda _: add_exercicio()),
                 ])),
-            ft.Container(expand=True, padding=ft.padding.Padding.symmetric(horizontal=16), content=lv_exercicios),
+            ft.Container(expand=True, padding=ft.Padding(16, 0, 16, 0), content=lv_exercicios),
             ft.Container(padding=16, bgcolor=ft.Colors.SURFACE,
                 content=ft.Row(alignment=ft.MainAxisAlignment.END, spacing=12, controls=[
                     ft.TextButton("CANCELAR", on_click=lambda _: on_cancel()),

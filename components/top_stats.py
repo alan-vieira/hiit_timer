@@ -14,8 +14,8 @@ def _StatColumn(label, value, accent_color):
 
 def TopStats(tempo_total_fmt, ciclo_atual, total_ciclos, etapa_atual, total_etapas, tempo_restante_fmt):
     return ft.Container(
-        padding=ft.padding.Padding.symmetric(horizontal=16, vertical=12),
-        margin=ft.margin.Margin(left=0, top=0, right=0, bottom=8),
+        padding=ft.Padding(16, 12, 16, 12),
+        margin=ft.Margin(0, 0, 0, 8),
         border_radius=12,
         bgcolor=ft.Colors.SURFACE_CONTAINER,
         border=ft.border.Border(
@@ -36,8 +36,8 @@ def ProximoExercicioBanner(proximo_nome, proximo_emoji, proximo_tipo):
     tipo_cores = {"exercicio": ft.Colors.PRIMARY, "descanso": ft.Colors.OUTLINE, "descanso_ciclo": ft.Colors.SECONDARY}
     cor = tipo_cores.get(proximo_tipo, ft.Colors.ON_SURFACE_VARIANT)
     return ft.Container(
-        padding=ft.padding.Padding.symmetric(horizontal=16, vertical=8),
-        margin=ft.margin.Margin(left=0, top=0, right=0, bottom=16),
+        padding=ft.Padding(16, 8, 16, 8),
+        margin=ft.Margin(0, 0, 0, 16),
         border_radius=8,
         bgcolor=ft.Colors.SURFACE_CONTAINER,
         border=ft.border.Border(
