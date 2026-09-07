@@ -8,8 +8,10 @@ Ferramenta personalizada para gerenciamento de treinos intervalados, permitindo 
 ## Funcionalidades Técnicas
 - **Motor de Tempo**: Cronômetro assíncrono (`asyncio`) com precisão de segundo a segundo.
 - **Gerenciamento de Estado**: Store centralizado para controle de ciclos, fases (exercício/intervalo) e configurações.
-- **Feedback do Sistema**: Vibração (haptic feedback) nas transições de fase e alerta sonoro (beep) nos últimos 3 segundos.
-- **UX/Otimização**: Modo tela cheia (fullscreen), prevenção de bloqueio de tela (wake lock) e interface adaptativa com tema escuro Material Design 3.
+- **Feedback do Sistema**: Vibração (haptic feedback) nas transições de fase.
+- **UX/Otimização**: Modo tela cheia (fullscreen), prevenção de bloqueio de tela (wake lock), **splash screen imediato**, **back button handler nativo**, interface adaptativa com tema escuro Material Design 3.
+- **Persistência**: Configurações salvas automaticamente via `client_storage` (SharedPreferences) — sobrevivem a reinicialização.
+- **Performance**: Updates granulares (`control.update()`) no loop do timer — 0 jank, CPU/bateria otimizados.
 - **Configuração**: Editor integrado para personalizar até 20 ciclos, com durações independentes.
 
 ## Estrutura do Projeto
@@ -24,7 +26,7 @@ hiit_timer/
 ├── utils/ # Funções auxiliares (helpers de formatação e async)
 ├── main.py # Ponto de entrada e inicialização do app Flet
 ├── workout.py # Lógica de negócio e orquestração do treino
-├── store.py # Gerenciamento de estado global
+├── store.py # Gerenciamento de estado global + persistência
 ├── flet_build.yaml # Configurações de build para Android
 └── requirements.txt # Dependências do projeto
 ```
@@ -49,11 +51,11 @@ python main.py
 Para gerar o pacote de instalação (.apk):
 
 ```bash
-flet build apk --release
+flet build apk
 ```
 
-Saída: O arquivo será gerado em `build/app/outputs/flutter-apk/app-release.apk`.
+Saída: O arquivo será gerado em `build/apk/hiit_timer.apk`.
 
 ---
 
-*Documento de referência técnica. Última atualização: Setembro 2026 (v1.0.1).*
+*Documento de referência técnica. Última atualização: Setembro 2026 (v1.1.0).*
