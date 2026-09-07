@@ -5,17 +5,22 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.1.1] - 2026-09-07
+
+### Corrigido
+- **Tela preta/branca no Android**: Removido splash screen intermediário que conflitava com sistema `page.views` — navegação agora usa apenas `page.views.append()` direto
+- **Back button handler**: Definido antes da primeira navegação para garantir interceptação correta no Android
+
 ## [1.1.0] - 2026-09-07
 
 ### Adicionado
 - **Back button handler nativo Android**: Intercepta botão voltar físico/gesto, previne fechamento acidental durante treino
-- **Splash screen imediato**: ProgressRing renderizado antes de qualquer setup pesado (<500ms cold start)
 - **Persistência de configurações**: `page.client_storage` (SharedPreferences) salva/restaura treino e ciclos automaticamente
 
 ### Melhorado
 - **Performance do timer**: Updates granulares (`control.update()`) no loop de 1s — elimina jank, reduz CPU/bateria
 - **Editor de exercícios**: Handlers `on_change` só mutam estado local — rebuild da lista só em add/remove
-- **Navegação centralizada**: Funções `_navegar_*` + `route_change`/`view_pop` para stack consistente
+- **Navegação simplificada**: Funções `_navegar_*` diretas com `page.views.clear()/append()` para stack consistente
 - **APIs Flet 0.86.5 padronizadas**: `ft.Padding`, `ft.Margin`, `ft.Alignment` em vez de helpers deprecated
 
 ### Corrigido
