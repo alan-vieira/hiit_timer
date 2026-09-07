@@ -56,4 +56,4 @@ Saída: O arquivo será gerado em `build/app/outputs/flutter-apk/app-release.apk
 
 ---
 
-*Documento de referência técnica. Última atualização: Setembro 2026.*
+*Documento de referência técnica. Última atualização: Setembro 2026 (v1.0.1).*

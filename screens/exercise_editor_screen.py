@@ -25,7 +25,7 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
             i = idx
             tf_emoji = ft.TextField(value=ex.emoji, width=60, text_align=ft.TextAlign.CENTER)
             tf_nome = ft.TextField(value=ex.nome, dense=True, expand=True)
-            tf_dur = ft.TextField(value=str(ex.duracao), width=70, keyboard_type=ft.KeyboardType.NUMBER, text_align=ft.TextAlign.CENTER, suffix_text="s")
+            tf_dur = ft.TextField(value=str(ex.duracao), width=70, keyboard_type=ft.KeyboardType.NUMBER, text_align=ft.TextAlign.CENTER, suffix="s")
             btn_del = ft.IconButton(icon=ft.Icons.DELETE_OUTLINE, icon_color=ft.Colors.ERROR, disabled=len(local["exercicios"]) <= 1)
 
             def on_emoji_change(e, i=i):

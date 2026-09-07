@@ -5,6 +5,12 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.0.1] - 2026-09-07
+
+### Corrigido
+- **Bug crítico**: Parâmetro incorreto `suffix_text` → `suffix` no `TextField` da tela de edição de exercícios (causava crash ao editar/voltar)
+- Validação: parâmetros válidos do Flet 0.86+ são `prefix`, `suffix`, `prefix_icon`, `suffix_icon`
+
 ## [1.0.0] - 2026-09-07
 
 ### Adicionado
