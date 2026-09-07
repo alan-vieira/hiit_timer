@@ -1,4 +1,4 @@
-"""HIIT Timer - Aplicação Principal (Refatorado v1.1.0)"""
+"""HIIT Timer - Aplicação Principal (v1.1.1 - corrigido)"""
 
 import flet as ft
 import asyncio
@@ -67,164 +67,59 @@ def build_dark_theme():
     )
 
 
-# --- Navegação Centralizada ---
-_current_timer_screen = None  # ref para cleanup
-
-
-def _build_config_view(page: ft.Page):
-    return ft.View(
-        route="/",
-        controls=[ft.SafeArea(ConfigScreen(
-            page=page,
-            on_iniciar=lambda nc: _navegar_timer(page, nc),
-            num_ciclos_inicial=store.num_ciclos,
-            on_navegar_editor=lambda: _navegar_editor(page),
-        ))],
-    )
-
-
-def _build_timer_view(page: ft.Page, num_ciclos: int):
-    global _current_timer_screen
+def iniciar_treino(page, num_ciclos):
     store.reiniciar_treino(num_ciclos)
-    _current_timer_screen = TimerScreen(
-        page=page,
-        etapas=store.etapas,
-        indice_inicial=0,
-        on_finalizar=lambda: _navegar_finish(page),
-        on_voltar_config=lambda: _navegar_config(page),
-    )
-    return ft.View(route="/timer", controls=[_current_timer_screen])
-
-
-def _build_finish_view(page: ft.Page):
-    return ft.View(
-        route="/finish",
-        controls=[ft.SafeArea(FinishScreen(
-            page=page,
-            tempo_total_seg=store.tempo_total_seg,
-            num_ciclos=store.num_ciclos,
-            on_repetir=lambda: _navegar_timer(page, store.num_ciclos),
-            on_configurar=lambda: _navegar_config(page),
-        ))],
-    )
-
-
-def _build_editor_view(page: ft.Page):
-    return ft.View(
-        route="/editor",
-        controls=[ft.SafeArea(ExerciseEditorScreen(
-            page=page,
-            on_save=lambda: _navegar_config(page),
-            on_cancel=lambda: _navegar_config(page),
-        ))],
-    )
-
-
-def _navegar_config(page: ft.Page):
     page.views.clear()
-    page.views.append(_build_config_view(page))
+    page.views.append(TimerScreen(page=page, etapas=store.etapas, indice_inicial=0,
+        on_finalizar=lambda: finalizar_treino(page), on_voltar_config=lambda: voltar_config(page)))
     page.update()
 
 
-def _navegar_timer(page: ft.Page, num_ciclos: int):
-    page.views.clear()
-    page.views.append(_build_timer_view(page, num_ciclos))
-    page.update()
-
-
-def _navegar_finish(page: ft.Page):
+def finalizar_treino(page):
     store.finalizar_treino()
     page.views.clear()
-    page.views.append(_build_finish_view(page))
+    page.views.append(FinishScreen(page=page, tempo_total_seg=store.tempo_total_seg,
+        num_ciclos=store.num_ciclos, on_repetir=lambda: repetir_treino(page),
+        on_configurar=lambda: voltar_config(page)))
     page.update()
 
 
-def _navegar_editor(page: ft.Page):
-    page.views.append(_build_editor_view(page))
+def voltar_config(page):
+    store.voltar_config()
+    page.views.clear()
+    page.views.append(ConfigScreen(page=page, on_iniciar=lambda nc: iniciar_treino(page, nc),
+        num_ciclos_inicial=store.num_ciclos, on_navegar_editor=lambda: navegar_editor(page)))
     page.update()
 
 
-# --- Back Button / View Pop ---
-async def _mostrar_confirmacao_saida(page: ft.Page) -> bool:
-    """Retorna True se usuário confirmou sair"""
-    confirmed = False
-    
-    def on_confirm(_):
-        nonlocal confirmed
-        confirmed = True
-        page.close_dialog()
-    
-    def on_cancel(_):
-        page.close_dialog()
-    
-    await page.show_dialog_async(ft.AlertDialog(
-        modal=True,
-        title=ft.Text("Sair do HIIT Timer?"),
-        content=ft.Text("Seu progresso não será salvo."),
-        actions=[
-            ft.TextButton("CANCELAR", on_click=on_cancel),
-            ft.FilledButton("SAIR", on_click=on_confirm),
-        ],
-        actions_alignment=ft.MainAxisAlignment.END,
-    ))
-    return confirmed
+def repetir_treino(page):
+    store.reiniciar_treino()
+    page.views.clear()
+    page.views.append(TimerScreen(page=page, etapas=store.etapas, indice_inicial=0,
+        on_finalizar=lambda: finalizar_treino(page), on_voltar_config=lambda: voltar_config(page)))
+    page.update()
 
 
-async def _mostrar_confirmacao_sair_timer(page: ft.Page) -> bool:
-    """No timer: pausa + confirma"""
-    # Pausar timer se rodando
-    if _current_timer_screen and hasattr(_current_timer_screen, "estado"):
-        _current_timer_screen.estado["pausado"] = True
-    
-    confirmed = False
-    
-    def on_confirm(_):
-        nonlocal confirmed
-        confirmed = True
-        page.close_dialog()
-    
-    def on_cancel(_):
-        # Retomar timer
-        if _current_timer_screen and hasattr(_current_timer_screen, "estado"):
-            _current_timer_screen.estado["pausado"] = False
-        page.close_dialog()
-    
-    await page.show_dialog_async(ft.AlertDialog(
-        modal=True,
-        title=ft.Text("Sair do treino?"),
-        content=ft.Text("O cronômetro será pausado. Deseja realmente sair?"),
-        actions=[
-            ft.TextButton("CONTINUAR TREINO", on_click=on_cancel),
-            ft.FilledButton("SAIR E PERDER PROGRESSO", on_click=on_confirm),
-        ],
-        actions_alignment=ft.MainAxisAlignment.END,
-    ))
-    return confirmed
+def navegar_editor(page):
+    page.views.append(ExerciseEditorScreen(page=page,
+        on_save=lambda: voltar_config(page), on_cancel=lambda: voltar_config(page)))
+    page.update()
 
 
 async def main(page: ft.Page):
     page.title = "HIIT Timer"
     page.theme_mode = ft.ThemeMode.DARK
+    page.theme = build_theme()
+    page.dark_theme = build_dark_theme()
 
-    # 1. SPLASH SCREEN IMEDIATO — primeiro frame < 100ms
-    splash = ft.Container(
-        expand=True,
-        alignment=ft.Alignment(0, 0),
-        bgcolor=ft.Colors.SURFACE,
-        content=ft.Column(
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=16,
-            controls=[
-                ft.ProgressRing(width=48, height=48, stroke_width=4, color=ft.Colors.PRIMARY),
-                ft.Text("HIIT Timer", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE),
-                ft.Text("Carregando...", size=14, color=ft.Colors.ON_SURFACE_VARIANT),
-            ],
-        ),
-    )
-    page.add(splash)
-    page.update()  # Força renderização imediata do splash
-    
-    # 2. Setup pesado em background (não bloqueia UI)
+    # Handler de Back Button para Android
+    def on_back_button(e: ft.ViewPopEvent):
+        if page.route == "/timer" or page.route == "/editor":
+            voltar_config(page)
+            e.prevent_default = True  # Impede o fechamento do app
+
+    page.on_back_button = on_back_button
+
     try:
         page.window.width = 400
         page.window.height = 850
@@ -233,30 +128,10 @@ async def main(page: ft.Page):
         await page.window.center()
     except Exception:
         pass  # Ignorado no Android
-    
-    page.theme = build_theme()
-    page.dark_theme = build_dark_theme()
-    
-    # 3. Anexar page ao store (para persistência futura)
-    store.attach_page(page)
-    
-    # 4. Handler de Back Button para Android
-    def on_back_button(e: ft.ViewPopEvent):
-        if page.route == "/timer":
-            _navegar_config(page)
-            e.prevent_default = True  # Impede o fechamento do app
-        elif page.route == "/editor":
-            _navegar_config(page)
-            e.prevent_default = True
-        else:
-            # Na tela inicial: permite o fechamento padrão do Android
-            pass
 
-    page.on_back_button = on_back_button
-
-    # 5. Substituir splash pela tela real
-    page.controls.clear()
-    page.views.append(_build_config_view(page))
+    # Adiciona a tela principal DIRETAMENTE (sem splash intermediário que quebra views)
+    page.views.append(ConfigScreen(page=page, on_iniciar=lambda nc: iniciar_treino(page, nc),
+        num_ciclos_inicial=store.num_ciclos, on_navegar_editor=lambda: navegar_editor(page)))
     page.update()
 
 
