@@ -1,9 +1,7 @@
-"""Tela de Edição de Exercícios e Intervalos (Otimizada)."""
-
+"""Tela de Edição de Exercícios e Intervalos."""
 import flet as ft
 from workout import ExercicioConfig, WorkoutConfig
 from store import store
-
 
 def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
     # Cópia local para edição
@@ -20,19 +18,18 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
     def rebuild_list():
         lv_exercicios.controls = []
         for idx, ex in enumerate(local["exercicios"]):
-            i = idx
+            i = idx  # Captura o índice para o closure
             tf_emoji = ft.TextField(value=ex.emoji, width=50, text_align=ft.TextAlign.CENTER)
             tf_nome = ft.TextField(value=ex.nome, dense=True, expand=True)
             tf_dur = ft.TextField(value=str(ex.duracao), width=80, keyboard_type=ft.KeyboardType.NUMBER, text_align=ft.TextAlign.CENTER)
             btn_del = ft.IconButton(icon=ft.Icons.DELETE_OUTLINE, icon_color=ft.Colors.ERROR, disabled=len(local["exercicios"]) <= 1, tooltip="Remover exercício")
 
-            # Handlers que APENAS mutam o estado, SEM chamar rebuild_list()
             def on_emoji_change(e, idx=i):
                 local["exercicios"][idx].emoji = e.control.value or "🏃"
-            
+
             def on_nome_change(e, idx=i):
                 local["exercicios"][idx].nome = e.control.value or "Exercício"
-            
+
             def on_dur_change(e, idx=i):
                 try:
                     v = int(e.control.value) if e.control.value else 30
@@ -42,16 +39,16 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
 
             def on_del(_, idx=i):
                 if len(local["exercicios"]) > 1:
-                    # Confirmação antes de remover
                     def confirmar(e):
                         local["exercicios"].pop(idx)
                         rebuild_list()
-                        page.close(dlg)
+                        dlg.open = False
                         page.update()
-                    
+
                     def cancelar(e):
-                        page.close(dlg)
-                    
+                        dlg.open = False
+                        page.update()
+
                     dlg = ft.AlertDialog(
                         title=ft.Text("Remover exercício?"),
                         content=ft.Text(f"Tem certeza que deseja remover '{local['exercicios'][idx].nome}'?"),
@@ -60,16 +57,20 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
                             ft.FilledButton("Remover", on_click=confirmar, style=ft.ButtonStyle(bgcolor=ft.Colors.ERROR)),
                         ],
                     )
-                    page.open(dlg)
+                    dlg.open = True
+                    page.update()
 
             tf_emoji.on_change = on_emoji_change
             tf_nome.on_change = on_nome_change
             tf_dur.on_change = on_dur_change
             btn_del.on_click = on_del
-
-            lv_exercicios.controls.append(ft.Card(content=ft.Container(padding=12, content=ft.Row(
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                controls=[tf_emoji, tf_nome, tf_dur, btn_del]))))
+            
+            lv_exercicios.controls.append(
+                ft.Card(content=ft.Container(padding=12, content=ft.Row(
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[tf_emoji, tf_nome, tf_dur, btn_del]
+                )))
+            )
         page.update()
 
     def on_curto_change(e):
@@ -102,8 +103,19 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
 
     rebuild_list()
 
-    return ft.View(route="/editor", bgcolor=ft.Colors.SURFACE,
-        appbar=ft.AppBar(title=ft.Text("Personalizar Treino", weight=ft.FontWeight.BOLD), center_title=True, bgcolor=ft.Colors.SURFACE),
+    return ft.View(
+        route="/editor",
+        bgcolor=ft.Colors.SURFACE,
+        appbar=ft.AppBar(
+            title=ft.Text("Personalizar Treino", weight=ft.FontWeight.BOLD),
+            center_title=True,
+            bgcolor=ft.Colors.SURFACE,
+            leading=ft.IconButton(
+                icon=ft.Icons.ARROW_BACK,
+                tooltip="Descartar alterações e voltar",
+                on_click=lambda _: on_cancel(),
+            ),
+        ),
         controls=[ft.SafeArea(content=ft.Column(expand=True, controls=[
             ft.Container(padding=16, margin=ft.Margin(16, 16, 16, 16), border_radius=12, bgcolor=ft.Colors.SURFACE_CONTAINER,
                 content=ft.Column(spacing=12, controls=[

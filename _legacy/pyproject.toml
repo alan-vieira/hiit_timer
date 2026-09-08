@@ -1,0 +1,28 @@
+[tool.pylint.main]
+# Ignora falsos positivos comuns do Flet (kwargs dinâmicos, membros não resolvidos)
+disable = [
+    "E1123",  # unexpected-keyword-arg (Flet usa muitos kwargs)
+    "E1121",  # too-many-function-args (Flet construtores)
+    "E1101",  # no-member (Flet injeta propriedades dinamicamente)
+    "R0913",  # too-many-arguments (comum em construtores de UI)
+    "R0915",  # too-many-statements (será resolvido na Fase 2)
+    "C0114",  # missing-module-docstring
+    "C0115",  # missing-class-docstring
+    "C0116",  # missing-function-docstring
+]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.black]
+line-length = 120
+target-version = ['py312']
+
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
