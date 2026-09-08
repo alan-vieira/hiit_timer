@@ -56,6 +56,43 @@ flet build apk
 
 Saída: O arquivo será gerado em `build/apk/hiit_timer.apk`.
 
+## 🧪 Testes Automatizados
+
+Este projeto possui uma suíte completa de testes automatizados:
+
+```bash
+# Instalar dependências de teste
+pip install -r requirements-dev.txt
+
+# Executar todos os testes
+pytest
+
+# Com relatório de cobertura
+pytest --cov=workout --cov=store --cov-report=html
+
+# Testes específicos
+pytest -m unit          # Unitários
+pytest -m ui            # Interface
+pytest -m integration   # Integração
+```
+
+### Cobertura
+
+| Módulo | Cobertura |
+|--------|-----------|
+| store.py | 100% |
+| workout.py | 98% |
+| **Total** | **99%** |
+
+### Estrutura de Testes
+
+```
+tests/
+├── unit/              # Lógica de negócio (workout, store)
+├── ui/                # Componentes Flet (screens, components)
+└── integration/       # Fluxos completos (store→view, persistência, stats)
+```
+
 ---
 
 *Documento de referência técnica. Última atualização: Setembro 2026 (v1.1.1).*
