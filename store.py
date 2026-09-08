@@ -44,7 +44,7 @@ class HIITStore:
             if saved_ciclos:
                 self.num_ciclos = int(saved_ciclos)
             self.atualizar_etapas()
-        except (json.JSONDecodeError, ValueError, TypeError, KeyError, AttributeError):
+        except (json.JSONDecodeError, ValueError, TypeError, KeyError, AttributeError, OSError):
             # Qualquer erro → defaults seguros (já definidos no dataclass)
             pass
     

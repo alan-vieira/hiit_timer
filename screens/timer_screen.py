@@ -17,6 +17,20 @@ def TimerScreen(page: ft.Page, etapas, indice_inicial=0, on_finalizar=None, on_v
         "cancel": asyncio.Event(),
     }
     
+    # Manter tela ativa durante o treino (Wake Lock)
+    try:
+        if hasattr(page, 'keep_screen_on'):
+            page.keep_screen_on = True
+    except Exception:
+        pass
+    
+    def _cleanup_wake_lock():
+        try:
+            if hasattr(page, 'keep_screen_on'):
+                page.keep_screen_on = False
+        except Exception:
+            pass
+    
     # Controles mutáveis
     txt_nome = ft.Text("", size=22, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE, text_align=ft.TextAlign.CENTER, max_lines=2)
     txt_tempo = ft.Text("", size=56, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE, font_family="RobotoMono")
@@ -130,6 +144,7 @@ def TimerScreen(page: ft.Page, etapas, indice_inicial=0, on_finalizar=None, on_v
         
         if estado["idx"] >= len(etapas) and not estado["finalizado"]:
             estado["finalizado"] = True
+            _cleanup_wake_lock()
             if on_finalizar:
                 on_finalizar()
 
@@ -156,6 +171,7 @@ def TimerScreen(page: ft.Page, etapas, indice_inicial=0, on_finalizar=None, on_v
             update_static_ui()
             refresh_ui()
         elif on_voltar_config:
+            _cleanup_wake_lock()
             on_voltar_config()
 
     def pular():

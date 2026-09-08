@@ -21,10 +21,10 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
         lv_exercicios.controls = []
         for idx, ex in enumerate(local["exercicios"]):
             i = idx
-            tf_emoji = ft.TextField(value=ex.emoji, width=60, text_align=ft.TextAlign.CENTER)
+            tf_emoji = ft.TextField(value=ex.emoji, width=50, text_align=ft.TextAlign.CENTER)
             tf_nome = ft.TextField(value=ex.nome, dense=True, expand=True)
-            tf_dur = ft.TextField(value=str(ex.duracao), width=70, keyboard_type=ft.KeyboardType.NUMBER, text_align=ft.TextAlign.CENTER, suffix="s")
-            btn_del = ft.IconButton(icon=ft.Icons.DELETE_OUTLINE, icon_color=ft.Colors.ERROR, disabled=len(local["exercicios"]) <= 1)
+            tf_dur = ft.TextField(value=str(ex.duracao), width=80, keyboard_type=ft.KeyboardType.NUMBER, text_align=ft.TextAlign.CENTER)
+            btn_del = ft.IconButton(icon=ft.Icons.DELETE_OUTLINE, icon_color=ft.Colors.ERROR, disabled=len(local["exercicios"]) <= 1, tooltip="Remover exercício")
 
             # Handlers que APENAS mutam o estado, SEM chamar rebuild_list()
             def on_emoji_change(e, idx=i):
@@ -42,9 +42,25 @@ def ExerciseEditorScreen(page: ft.Page, on_save, on_cancel):
 
             def on_del(_, idx=i):
                 if len(local["exercicios"]) > 1:
-                    local["exercicios"].pop(idx)
-                    rebuild_list()  # Só rebuilda ao adicionar/remover, NÃO ao digitar
-                    page.update()
+                    # Confirmação antes de remover
+                    def confirmar(e):
+                        local["exercicios"].pop(idx)
+                        rebuild_list()
+                        page.close(dlg)
+                        page.update()
+                    
+                    def cancelar(e):
+                        page.close(dlg)
+                    
+                    dlg = ft.AlertDialog(
+                        title=ft.Text("Remover exercício?"),
+                        content=ft.Text(f"Tem certeza que deseja remover '{local['exercicios'][idx].nome}'?"),
+                        actions=[
+                            ft.TextButton("Cancelar", on_click=cancelar),
+                            ft.FilledButton("Remover", on_click=confirmar, style=ft.ButtonStyle(bgcolor=ft.Colors.ERROR)),
+                        ],
+                    )
+                    page.open(dlg)
 
             tf_emoji.on_change = on_emoji_change
             tf_nome.on_change = on_nome_change

@@ -8,10 +8,18 @@ from workout import fmt
 
 def FinishScreen(page: ft.Page, tempo_total_seg, num_ciclos, on_repetir, on_configurar):
     tempo_fmt = fmt(tempo_total_seg)
+    
+    # Liberar wake lock ao finalizar o treino
+    try:
+        if hasattr(page, 'keep_screen_on'):
+            page.keep_screen_on = False
+    except Exception:
+        pass
+    
     return ft.View(route="/finish", bgcolor=ft.Colors.SURFACE, controls=[
         ft.SafeArea(content=ft.Container(expand=True, alignment=ft.Alignment(0, 0), padding=ft.padding.Padding.all(32),
             content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=24, controls=[
-                ft.Container(padding=24, border_radius=ft.border_radius.all(60), bgcolor=ft.Colors.SECONDARY_CONTAINER,
+                ft.Container(padding=24, border_radius=60, bgcolor=ft.Colors.SECONDARY_CONTAINER,
                     content=ft.Icon(ft.Icons.EMOJI_EVENTS, size=64, color=ft.Colors.ON_SECONDARY_CONTAINER)),
                 ft.Text("Treino Concluído! \U0001f389", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE, text_align=ft.TextAlign.CENTER),
                 ft.Text(f"Você completou {num_ciclos} ciclo{'s' if num_ciclos > 1 else ''} em {tempo_fmt}", size=16, color=ft.Colors.ON_SURFACE_VARIANT, text_align=ft.TextAlign.CENTER),

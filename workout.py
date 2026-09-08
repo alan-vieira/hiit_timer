@@ -8,24 +8,47 @@ from typing import Literal
 TipoEtapa = Literal["exercicio", "descanso", "descanso_ciclo"]
 
 
-@dataclass
+def _validar_duracao_positiva(valor: int, campo: str) -> None:
+    """Valida que duração é positiva."""
+    if valor <= 0:
+        raise ValueError(f"{campo} deve ser positivo")
+
+
+def _validar_nao_vazio(valor: str, campo: str) -> None:
+    """Valida que string não é vazia."""
+    if not valor or not valor.strip():
+        raise ValueError(f"{campo} é obrigatório")
+
+
+@dataclass(frozen=True, eq=True)
 class ExercicioConfig:
     nome: str
     emoji: str
     duracao: int
 
+    def __post_init__(self):
+        _validar_nao_vazio(self.nome, "nome")
+        _validar_nao_vazio(self.emoji, "emoji")
+        _validar_duracao_positiva(self.duracao, "duração")
+
 
 @dataclass
 class WorkoutConfig:
     exercicios: list = field(default_factory=lambda: [
-        ExercicioConfig("Polichinelo", "\U0001f938", 60),
-        ExercicioConfig("Elevação de joelhos", "\U0001f9b5", 60),
-        ExercicioConfig("Crucifixo", "\U0001f98b", 60),
-        ExercicioConfig("Extensão de braços", "\U0001f4aa", 60),
-        ExercicioConfig("Agachamento", "\U0001f3cb\ufe0f", 60),
+        ExercicioConfig("Polichinelo", "🤸", 60),
+        ExercicioConfig("Elevação de joelhos", "🦵", 60),
+        ExercicioConfig("Crucifixo", "🦋", 60),
+        ExercicioConfig("Extensão de braços", "💪", 60),
+        ExercicioConfig("Agachamento", "🏋️", 60),
     ])
     descanso_curto: int = 30
     descanso_ciclo: int = 60
+
+    def __post_init__(self):
+        if not self.exercicios:
+            raise ValueError("É necessário pelo menos 1 exercício")
+        _validar_duracao_positiva(self.descanso_curto, "descanso_curto")
+        _validar_duracao_positiva(self.descanso_ciclo, "descanso_ciclo")
 
 
 @dataclass(slots=True)
