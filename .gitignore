@@ -66,4 +66,5 @@ htmlcov/
 
 # Distribution / Packaging
 *.whl
-*.tar.gz
+*.tar.gzbuild/
+*.apk
