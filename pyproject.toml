@@ -1,6 +1,5 @@
-# Criar pyproject.toml na raiz
-cat > pyproject.toml << 'EOF'
 [tool.pylint.main]
+# Ignora falsos positivos comuns do Flet (kwargs dinâmicos, membros não resolvidos)
 disable = [
     "E1123",
     "E1121",
@@ -27,4 +26,3 @@ ignore = ["E501"]
 [tool.isort]
 profile = "black"
 line_length = 120
-EOF
