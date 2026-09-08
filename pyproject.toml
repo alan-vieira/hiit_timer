@@ -1,0 +1,30 @@
+# Criar pyproject.toml na raiz
+cat > pyproject.toml << 'EOF'
+[tool.pylint.main]
+disable = [
+    "E1123",
+    "E1121",
+    "E1101",
+    "R0913",
+    "R0915",
+    "C0114",
+    "C0115",
+    "C0116",
+]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.black]
+line-length = 120
+target-version = ['py312']
+
+[tool.ruff]
+line-length = 120
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+EOF
