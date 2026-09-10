@@ -7,6 +7,29 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [2.1.0] - 2026-09-10
+
+### ✨ Adicionado
+- 🔊 **Sistema de áudio completo** com 4 efeitos sonoros via `flet-audio`:
+  - Som de início de exercício
+  - Som de intervalo/descanso
+  - Countdown 3-2-1 (último 3s de cada fase)
+  - Som de finalização do treino
+- 🔋 **Wake lock** via `wakepy` — mantém tela ligada durante treino (Android)
+- 📜 **Scroll automático** no Editor de Treino — lista de exercícios expande com scroll interno
+- 🎯 **Emoji padrão** (🏃) ao adicionar novo exercício no editor
+
+### 🐛 Corrigido
+- ❌ **Descanso longo não adicionado após último ciclo** — lógica ajustada em `gerar_etapas()`
+- 🎵 **Execução de áudio não-bloqueante** — timeouts e error handling para não travar o timer
+
+### 🔧 Alterado
+- 📦 `requirements.txt` atualizado com `flet-audio>=0.1.0` e `wakepy>=0.7.0`
+- 📦 `pyproject.toml` convertido para formato PEP 621 com metadados do projeto
+- 🚀 `ft.run(main, assets_dir="assets")` — assets servidos corretamente no build Android
+
+---
+
 ## [2.0.0] - 2026-09-09
 
 ### 🎯 Refatoração Radical: Arquitetura Monolítica

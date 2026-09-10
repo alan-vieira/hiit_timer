@@ -1,0 +1,3 @@
+flet==0.86.5
+flet-audio>=0.1.0
+wakepy>=0.7.0

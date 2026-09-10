@@ -1,3 +1,15 @@
+[project]
+name = "hiit-timer"
+version = "2.1.0"
+description = "Cronômetro HIIT simples e funcional"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "flet==0.86.5",
+    "flet-audio>=0.1.0",
+    "wakepy>=0.7.0",
+]
+
 [tool.pylint.main]
 # Ignora falsos positivos comuns do Flet (kwargs dinâmicos, membros não resolvidos)
 disable = [

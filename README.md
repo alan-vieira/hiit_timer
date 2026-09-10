@@ -2,7 +2,7 @@
 
 Cronômetro para treinos HIIT (High-Intensity Interval Training) desenvolvido em **Python 3.12 + Flet** e compilado nativamente para **Android**.
 
-> **Versão:** 2.0.0 · **Autor:** Alan Vieira · **Licença:** MIT
+> **Versão:** 2.1.0 · **Autor:** Alan Vieira · **Licença:** MIT
 
 ---
 
@@ -24,6 +24,29 @@ Aplicativo simples e direto para gerenciar treinos intervalados. Configure exerc
 - **Tema Escuro Material 3** — Paleta violeta/roxo consistente
 - **Navegação Android** — Botão físico "Voltar" interceptado corretamente em todas as telas
 - **Build Nativo Android** — APK pronto para instalação
+- **🔊 Sistema de Áudio** — 4 efeitos sonoros: início, intervalo, countdown 3-2-1, finalização (via `flet-audio`)
+- **🔋 Wake Lock** — Mantém tela ligada durante treino no Android (via `wakepy`)
+- **📜 Editor com Scroll** — Lista de exercícios expansível com scroll interno automático
+- **🏃 Emoji Padrão** — Novo exercício já vem com emoji 🏃
+
+---
+
+## 📋 Últimas Mudanças (v2.1.0 - 2026-09-10)
+
+### ✨ Adicionado
+- 🔊 **Sistema de áudio completo** com 4 efeitos sonoros via `flet-audio`
+- 🔋 **Wake lock** via `wakepy` — mantém tela ligada durante treino (Android)
+- 📜 **Scroll automático** no Editor de Treino
+- 🎯 **Emoji padrão** (🏃) ao adicionar novo exercício
+
+### 🐛 Corrigido
+- ❌ **Descanso longo não adicionado após último ciclo**
+- 🎵 **Execução de áudio não-bloqueante** — timeouts e error handling
+
+### 🔧 Alterado
+- 📦 Dependências atualizadas: `flet-audio>=0.1.0`, `wakepy>=0.7.0`
+- 📦 `pyproject.toml` convertido para formato PEP 621
+- 🚀 Assets servidos corretamente no build Android
 
 ---
 
@@ -42,7 +65,7 @@ cd hiit_timer
 python -m venv venv
 venv\Scripts\activate        # Windows
 # source venv/bin/activate   # Linux/macOS
-pip install flet
+pip install -r requirements.txt
 ```
 
 ### Executar (desenvolvimento)
@@ -54,10 +77,10 @@ python main.py
 ### Build do APK (Android)
 
 ```bash
-flet build apk --org com.alanvieira --product "HIITTimer"
+flet build apk --release
 ```
 
-O APK será gerado em `build/apk/hiit_timer.apk`.
+O APK será gerado em `build/app/outputs/flutter-apk/app-release.apk`.
 
 ---
 
@@ -65,11 +88,14 @@ O APK será gerado em `build/apk/hiit_timer.apk`.
 
 ```
 hiit_timer/
-├── main.py          # App completo (~460 linhas)
-├── dados.json       # Configuração persistida (criado automaticamente)
-├── pyproject.toml   # Config: Pylint, Black, Ruff, isort
-├── _legacy/         # Arquitetura modular v1.x (referência histórica)
-└── build/           # Artefatos de build (APK, etc.)
+├── main.py              # App completo (~550 linhas)
+├── dados.json           # Configuração persistida (criado automaticamente)
+├── pyproject.toml       # Config: Pylint, Black, Ruff, isort + metadados PEP 621
+├── requirements.txt     # Dependências de produção
+├── CHANGELOG.md         # Histórico de versões
+├── assets/              # Arquivos de áudio (som_inicio.wav, som_intervalo.wav, som_countdown.wav, som_fim.wav)
+├── _legacy/             # Arquitetura modular v1.x (referência histórica)
+└── build/               # Artefatos de build (APK, etc.)
 ```
 
 **Decisão de arquitetura:** a partir da v2.0.0, o projeto adotou uma estrutura **monolítica (single-file)** para priorizar simplicidade e manutenibilidade. A arquitetura modular anterior (v1.x) está preservada em `_legacy/` para referência.
@@ -107,13 +133,16 @@ O arquivo é criado automaticamente na primeira execução com valores padrão.
 
 ## 📊 Comparativo de Versões
 
-| Métrica | v1.x (modular) | v2.0 (monolítico) |
-|---------|----------------|-------------------|
-| Arquivos de código | 8+ | 1 |
-| Linhas totais | ~1500 | ~460 |
-| Complexidade | Alta (store reativo, dataclasses frozen, 149 testes) | Baixa |
-| Bugs de navegação | Tela preta, seta de voltar quebrada | Resolvidos |
-| Build Android | Funcional | Funcional |
+| Métrica | v1.x (modular) | v2.0 (monolítico) | v2.1 (atual) |
+|---------|----------------|-------------------|--------------|
+| Arquivos de código | 8+ | 1 | 1 |
+| Linhas totais | ~1500 | ~460 | ~550 |
+| Complexidade | Alta (store reativo, dataclasses frozen, 149 testes) | Baixa | Baixa |
+| Bugs de navegação | Tela preta, seta de voltar quebrada | Resolvidos | Resolvidos |
+| Build Android | Funcional | Funcional | Funcional |
+| Áudio | ❌ | ❌ | ✅ 4 sons + countdown |
+| Wake Lock | ❌ | ❌ | ✅ wakepy |
+| Editor Scroll | ❌ | ❌ | ✅ Auto-expansível |
 
 ---
 
@@ -148,4 +177,4 @@ Copyright © 2026 Alan Vieira. Distribuído sob licença MIT.
 
 ---
 
-*Documento de referência. Última atualização: Setembro 2026 (v2.0.0).*
+*Documento de referência. Última atualização: Setembro 2026 (v2.1.0).*

@@ -3,10 +3,10 @@ import json
 import asyncio
 from pathlib import Path
 import flet as ft
+import flet_audio as fta
 
 # ==================== CONFIGURAÇÃO PADRÃO ====================
 ARQUIVO_DADOS = "dados.json"
-
 CONFIG_PADRAO = {
     "exercicios": [
         {"nome": "Polichinelo", "emoji": "🤸", "duracao": 60},
@@ -58,10 +58,12 @@ def gerar_etapas(config: dict, num_ciclos: int) -> list:
             })
             idx += 1
             if i == len(config["exercicios"]) - 1:
-                etapas.append({
-                    "indice": idx, "nome": "Descanso de ciclo", "emoji": "☕",
-                    "duracao": config["descanso_ciclo"], "tipo": "descanso_ciclo", "ciclo": ciclo,
-                })
+                # ✅ Só adiciona descanso longo se NÃO for o último ciclo
+                if ciclo < num_ciclos:
+                    etapas.append({
+                        "indice": idx, "nome": "Descanso de ciclo", "emoji": "☕",
+                        "duracao": config["descanso_ciclo"], "tipo": "descanso_ciclo", "ciclo": ciclo,
+                    })
             else:
                 etapas.append({
                     "indice": idx, "nome": "Descanso", "emoji": "⏸️",
@@ -131,7 +133,7 @@ def tela_config(page: ft.Page):
                 content=ft.Column(spacing=12, controls=[
                     ft.FilledButton("▶ INICIAR TREINO", icon=ft.Icons.PLAY_ARROW, on_click=iniciar_treino,
                         style=ft.ButtonStyle(padding=ft.Padding(0, 16, 0, 16), shape=ft.RoundedRectangleBorder(radius=12)), expand=True),
-                    ft.OutlinedButton(" PERSONALIZAR TREINO", icon=ft.Icons.EDIT, on_click=abrir_editor,
+                    ft.OutlinedButton("⚙ PERSONALIZAR TREINO", icon=ft.Icons.EDIT, on_click=abrir_editor,
                         style=ft.ButtonStyle(padding=ft.Padding(0, 16, 0, 16), shape=ft.RoundedRectangleBorder(radius=12)), expand=True),
                 ])),
         ]))],
@@ -197,7 +199,6 @@ def tela_editor(page: ft.Page):
             tf_nome.on_change = on_nome
             tf_dur.on_change = on_dur
             btn_del.on_click = on_del
-
             lv_exercicios.controls.append(ft.Card(content=ft.Container(padding=12,
                 content=ft.Row(vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=[tf_emoji, tf_nome, tf_dur, btn_del]))))
         page.update()
@@ -205,9 +206,11 @@ def tela_editor(page: ft.Page):
     def on_curto(e):
         try: local["descanso_curto"] = max(1, int(e.control.value) if e.control.value else 30)
         except ValueError: local["descanso_curto"] = 30
+
     def on_ciclo(e):
         try: local["descanso_ciclo"] = max(1, int(e.control.value) if e.control.value else 60)
         except ValueError: local["descanso_ciclo"] = 60
+
     def on_ciclos(e):
         try: local["num_ciclos"] = max(1, min(20, int(e.control.value) if e.control.value else 3))
         except ValueError: local["num_ciclos"] = 3
@@ -217,7 +220,7 @@ def tela_editor(page: ft.Page):
     tf_ciclos.on_change = on_ciclos
 
     def add_exercicio(_):
-        local["exercicios"].append({"nome": "Novo Exercício", "emoji": "", "duracao": 45})
+        local["exercicios"].append({"nome": "Novo Exercício", "emoji": "🏃", "duracao": 45})
         rebuild_list()
 
     def salvar_tudo(_):
@@ -239,7 +242,6 @@ def tela_editor(page: ft.Page):
         navegar(page, tela_config)
 
     rebuild_list()
-
     return ft.View(
         route="/editor", bgcolor=ft.Colors.SURFACE,
         appbar=ft.AppBar(title=ft.Text("Personalizar Treino", weight=ft.FontWeight.BOLD), center_title=True, bgcolor=ft.Colors.SURFACE,
@@ -259,7 +261,8 @@ def tela_editor(page: ft.Page):
                     ft.Text("EXERCÍCIOS", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE_VARIANT),
                     ft.TextButton("ADICIONAR", icon=ft.Icons.ADD, on_click=add_exercicio),
                 ])),
-            ft.Container(expand=True, padding=ft.Padding(16, 0, 16, 0), content=lv_exercicios),
+            ft.Container(expand=True, padding=ft.Padding(16, 0, 16, 0), 
+                content=ft.Column(scroll="auto", expand=True, controls=[lv_exercicios])),
             ft.Container(padding=16, bgcolor=ft.Colors.SURFACE,
                 content=ft.Row(alignment=ft.MainAxisAlignment.END, spacing=12, controls=[
                     ft.TextButton("CANCELAR", on_click=lambda _: cancelar(None)),
@@ -275,7 +278,12 @@ def tela_timer(page: ft.Page, config: dict, num_ciclos: int):
         navegar(page, tela_config)
         return ft.View(route="/timer", controls=[ft.Text("Erro: treino vazio")])
 
-    estado = {"idx": 0, "tempo": etapas[0]["duracao"], "pausado": False, "finalizado": False, "task": None, "cancel": asyncio.Event()}
+    estado = {
+        "idx": 0, "tempo": etapas[0]["duracao"], "pausado": False,
+        "finalizado": False, "task": None, "cancel": asyncio.Event(),
+        "ultimo_segundo_tocado": -1,
+        "som_final_tocado": False  # ✅ Nova flag
+    }
 
     txt_nome = ft.Text("", size=22, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE, text_align=ft.TextAlign.CENTER, max_lines=2)
     txt_tempo = ft.Text("", size=56, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE, font_family="RobotoMono")
@@ -294,20 +302,45 @@ def tela_timer(page: ft.Page, config: dict, num_ciclos: int):
     ])
     ring_area = ft.Container(content=ring_stack, alignment=ft.Alignment(0, 0), expand=True, padding=ft.Padding(24, 16, 24, 16))
 
+    # ==================== FUNÇÕES DE ÁUDIO (NÃO-BLOQUEANTES) ====================
+    async def tocar_som_com_timeout(audio_obj, timeout=2.0):
+        """Toca o som com timeout para não travar o timer"""
+        try:
+            await asyncio.wait_for(audio_obj.play(), timeout=timeout)
+        except asyncio.TimeoutError:
+            print(f"️ Timeout ao tocar som (ignorado)")
+        except Exception as e:
+            print(f"⚠️ Erro ao tocar som: {e}")
+
+    async def tocar_som(tipo_etapa: str):
+        """Toca o som apropriado baseado no tipo de etapa"""
+        try:
+            if tipo_etapa == "exercicio":
+                await tocar_som_com_timeout(page.som_inicio)
+            elif tipo_etapa in ["descanso", "descanso_ciclo"]:
+                await tocar_som_com_timeout(page.som_intervalo)
+        except Exception as e:
+            print(f"Erro ao tocar som: {e}")
+
     def update_static_ui():
         idx = estado["idx"]
-        if idx >= len(etapas): return
+        if idx >= len(etapas):
+            return
         ep = etapas[idx]
         prox = etapas[idx + 1] if idx + 1 < len(etapas) else None
         cr, cf, badge_bg, badge_fg, badge_label = CORES.get(ep["tipo"], CORES["exercicio"])
+
         txt_badge.value = badge_label
         txt_badge.color = badge_fg
         badge_container.bgcolor = badge_bg
+
         ciclo_atual = ep["ciclo"]
         total_ciclos = max(e["ciclo"] for e in etapas)
         txt_stats.value = f"Ciclo {ciclo_atual}/{total_ciclos} • Etapa {idx + 1}/{len(etapas)}"
         txt_proximo.value = f"Próximo: {prox['emoji']} {prox['nome']}" if prox else "Última etapa!"
+
         controls_container.content = _controls_bar(retroceder, alternar_pausa, pular, estado["pausado"])
+
         txt_badge.update()
         badge_container.update()
         txt_stats.update()
@@ -317,15 +350,19 @@ def tela_timer(page: ft.Page, config: dict, num_ciclos: int):
     def refresh_ui():
         idx = estado["idx"]
         tempo = estado["tempo"]
-        if idx >= len(etapas): return
+        if idx >= len(etapas):
+            return
         ep = etapas[idx]
         cr, cf, _, _, _ = CORES.get(ep["tipo"], CORES["exercicio"])
+
         ring_progress.color = cr
         ring_track.color = cf
         progresso = max(0.0, min(1.0, 1.0 - (tempo / ep["duracao"]))) if ep["duracao"] > 0 else 0.0
         ring_progress.value = progresso
+
         txt_nome.value = f"{ep['emoji']} {ep['nome']}"
         txt_tempo.value = fmt(tempo)
+
         txt_tempo.update()
         ring_progress.update()
 
@@ -335,39 +372,62 @@ def tela_timer(page: ft.Page, config: dict, num_ciclos: int):
         while not estado["cancel"].is_set() and estado["idx"] < len(etapas):
             if not estado["pausado"]:
                 await asyncio.sleep(1)
-                if estado["cancel"].is_set(): break
+                if estado["cancel"].is_set():
+                    break
                 estado["tempo"] -= 1
-                if estado["tempo"] <= 0: await avancar()
-                else: refresh_ui()
-            else: await asyncio.sleep(0.1)
+                tempo_atual = estado["tempo"]
+
+                # ✅ COUNTDOWN 3-2-1 (não-bloqueante, dispara em background)
+                if tempo_atual in [3, 2, 1] and estado["ultimo_segundo_tocado"] != tempo_atual:
+                    asyncio.create_task(tocar_som_com_timeout(page.som_countdown, timeout=1.0))
+                    estado["ultimo_segundo_tocado"] = tempo_atual
+
+                if tempo_atual <= 0:
+                    await avancar()
+                else:
+                    refresh_ui()
+            else:
+                await asyncio.sleep(0.1)
+
         if estado["idx"] >= len(etapas) and not estado["finalizado"]:
             estado["finalizado"] = True
-            on_finalizar()
+            await on_finalizar()
 
     async def avancar():
-        try: page.haptic_feedback()
-        except Exception: pass
+        try:
+            page.haptic_feedback()
+        except Exception:
+            pass
+        # Reseta o rastreador de segundos para a próxima etapa
+        estado["ultimo_segundo_tocado"] = -1
         if estado["idx"] + 1 < len(etapas):
             estado["idx"] += 1
             estado["tempo"] = etapas[estado["idx"]]["duracao"]
+            nova_etapa = etapas[estado["idx"]]
+            await tocar_som(nova_etapa["tipo"])
             update_static_ui()
             refresh_ui()
         else:
             estado["finalizado"] = True
-            on_finalizar()
+            await on_finalizar()
 
     def retroceder():
+        estado["ultimo_segundo_tocado"] = -1
         if estado["idx"] > 0:
             estado["idx"] -= 1
             estado["tempo"] = etapas[estado["idx"]]["duracao"]
             update_static_ui()
             refresh_ui()
-        else: voltar_config()
+        else:
+            voltar_config()
 
     def pular():
+        estado["ultimo_segundo_tocado"] = -1
         if estado["idx"] + 1 < len(etapas):
             estado["idx"] += 1
             estado["tempo"] = etapas[estado["idx"]]["duracao"]
+            nova_etapa = etapas[estado["idx"]]
+            asyncio.create_task(tocar_som(nova_etapa["tipo"]))
             update_static_ui()
             refresh_ui()
 
@@ -380,7 +440,16 @@ def tela_timer(page: ft.Page, config: dict, num_ciclos: int):
         estado["cancel"].set()
         navegar(page, tela_config)
 
-    def on_finalizar():
+    async def on_finalizar():
+        # ✅ Garante que som final toque apenas uma vez
+        if estado["som_final_tocado"]:
+            return
+        estado["som_final_tocado"] = True
+        
+        try:
+            await tocar_som_com_timeout(page.som_fim, timeout=2.0)
+        except Exception as e:
+            print(f"Erro som fim: {e}")
         navegar(page, tela_finish, tempo_total(config, num_ciclos), num_ciclos)
 
     estado["task"] = asyncio.ensure_future(timer_loop())
@@ -420,7 +489,7 @@ def tela_finish(page: ft.Page, tempo_total_seg: int, num_ciclos: int):
             content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=24, controls=[
                 ft.Container(padding=24, border_radius=60, bgcolor=ft.Colors.SECONDARY_CONTAINER,
                     content=ft.Icon(ft.Icons.EMOJI_EVENTS, size=64, color=ft.Colors.ON_SECONDARY_CONTAINER)),
-                ft.Text("Treino Concluído! ", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE, text_align=ft.TextAlign.CENTER),
+                ft.Text("Treino Concluído! 🎉", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE, text_align=ft.TextAlign.CENTER),
                 ft.Text(f"Você completou {num_ciclos} ciclo{'s' if num_ciclos > 1 else ''} em {tempo_fmt}",
                     size=16, color=ft.Colors.ON_SURFACE_VARIANT, text_align=ft.TextAlign.CENTER),
                 ft.Container(padding=ft.Padding(16, 16, 16, 16), border_radius=16, bgcolor=ft.Colors.SURFACE_CONTAINER,
@@ -437,12 +506,37 @@ def tela_finish(page: ft.Page, tempo_total_seg: int, num_ciclos: int):
                 ]),
             ])))])
 
-
 # ==================== ENTRY POINT ====================
 async def main(page: ft.Page):
     page.title = "HIIT Timer"
     page.theme_mode = ft.ThemeMode.DARK
     page.theme = ft.Theme(color_scheme_seed="#9C27B0", use_material3=True)
+
+    # 1️⃣ Navega para a tela inicial PRIMEIRO (para evitar "views list is empty")
+    navegar(page, tela_config)
+
+    # 2️ Inicializa os serviços de áudio
+    som_inicio = fta.Audio(src="assets/som_inicio.wav", autoplay=False, volume=0.8)
+    som_intervalo = fta.Audio(src="assets/som_intervalo.wav", autoplay=False, volume=0.8)
+    som_countdown = fta.Audio(src="assets/som_countdown.wav", autoplay=False, volume=0.6)
+    som_fim = fta.Audio(src="assets/som_fim.wav", autoplay=False, volume=1.0)
+
+    page.services.extend([som_inicio, som_intervalo, som_countdown, som_fim])
+
+    # Anexa ao objeto page para acesso fácil em qualquer tela
+    page.som_inicio = som_inicio
+    page.som_intervalo = som_intervalo
+    page.som_countdown = som_countdown
+    page.som_fim = som_fim
+
+    # 3️⃣ Wake lock usando wakepy (funciona no Android)
+    try:
+        from wakepy import keep
+        wake_lock = keep.presenting()
+        wake_lock.__enter__()
+        print("✅ Wake lock ativado")
+    except Exception as e:
+        print(f"⚠️ Wake lock não disponível: {e}")
 
     def on_view_pop(e: ft.ViewPopEvent):
         if page.route in ["/timer", "/editor", "/finish"]:
@@ -453,7 +547,6 @@ async def main(page: ft.Page):
         e.prevent_default = True
 
     page.on_view_pop = on_view_pop
-    navegar(page, tela_config)
 
 if __name__ == "__main__":
-    ft.run(main)
+    ft.run(main, assets_dir="assets")
