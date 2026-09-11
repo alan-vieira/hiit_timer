@@ -1,12 +1,14 @@
 """HIIT Timer - Cronômetro HIIT simples e funcional (Editor Simplificado)."""
-import json
+
 import asyncio
+import json
 from pathlib import Path
-from typing import TypedDict, Optional, Any
+from typing import Any, TypedDict
 
 import flet as ft
 import flet_audio as fta
 from wakepy import keep
+
 
 # ==================== TIPOS ====================
 class Etapa(TypedDict):
@@ -17,11 +19,13 @@ class Etapa(TypedDict):
     tipo: str
     ciclo: int
 
+
 class Config(TypedDict):
     exercicios: list[dict[str, Any]]
     descanso_curto: int
     descanso_ciclo: int
     num_ciclos: int
+
 
 class Estado(TypedDict):
     idx: int
@@ -30,6 +34,7 @@ class Estado(TypedDict):
     finalizado: bool
     ultimo_segundo_tocado: int
     som_final_tocado: bool
+
 
 # ==================== CONFIGURAÇÃO ====================
 ARQUIVO_DADOS = "dados.json"
@@ -49,12 +54,20 @@ CONFIG_PADRAO: Config = {
 CORES = {
     "exercicio": ("#9C27B0", "#4A148C", ft.Colors.PRIMARY_CONTAINER, ft.Colors.ON_PRIMARY_CONTAINER, "EXERCÍCIO"),
     "descanso": ("#FF9800", "#E65100", ft.Colors.SECONDARY_CONTAINER, ft.Colors.ON_SECONDARY_CONTAINER, "DESCANSO"),
-    "descanso_ciclo": ("#FF9800", "#E65100", ft.Colors.SECONDARY_CONTAINER, ft.Colors.ON_SECONDARY_CONTAINER, "DESCANSO LONGO"),
+    "descanso_ciclo": (
+        "#FF9800",
+        "#E65100",
+        ft.Colors.SECONDARY_CONTAINER,
+        ft.Colors.ON_SECONDARY_CONTAINER,
+        "DESCANSO LONGO",
+    ),
 }
+
 
 # ==================== PERSISTÊNCIA ====================
 def get_path() -> Path:
     return Path(__file__).parent.resolve() / ARQUIVO_DADOS
+
 
 def carregar() -> Config:
     try:
@@ -62,6 +75,7 @@ def carregar() -> Config:
             return json.load(f)  # type: ignore
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return CONFIG_PADRAO.copy()
+
 
 def salvar(dados: Config) -> bool:
     try:
@@ -71,9 +85,11 @@ def salvar(dados: Config) -> bool:
     except OSError:
         return False
 
+
 # ==================== HELPERS ====================
 def fmt(segundos: int) -> str:
     return f"{segundos // 60:02d}:{segundos % 60:02d}"
+
 
 def gerar_etapas(config: Config, num_ciclos: int) -> list[Etapa]:
     etapas: list[Etapa] = []
@@ -81,48 +97,87 @@ def gerar_etapas(config: Config, num_ciclos: int) -> list[Etapa]:
     for ciclo in range(1, num_ciclos + 1):
         for i, ex in enumerate(config["exercicios"]):
             idx += 1
-            etapas.append({
-                "indice": idx, "nome": ex["nome"], "emoji": ex["emoji"],
-                "duracao": ex["duracao"], "tipo": "exercicio", "ciclo": ciclo,
-            })
+            etapas.append(
+                {
+                    "indice": idx,
+                    "nome": ex["nome"],
+                    "emoji": ex["emoji"],
+                    "duracao": ex["duracao"],
+                    "tipo": "exercicio",
+                    "ciclo": ciclo,
+                }
+            )
             idx += 1
             if i == len(config["exercicios"]) - 1:
                 if ciclo < num_ciclos:
-                    etapas.append({
-                        "indice": idx, "nome": "Descanso de ciclo", "emoji": "☕",
-                        "duracao": config["descanso_ciclo"], "tipo": "descanso_ciclo", "ciclo": ciclo,
-                    })
+                    etapas.append(
+                        {
+                            "indice": idx,
+                            "nome": "Descanso de ciclo",
+                            "emoji": "☕",
+                            "duracao": config["descanso_ciclo"],
+                            "tipo": "descanso_ciclo",
+                            "ciclo": ciclo,
+                        }
+                    )
             else:
-                etapas.append({
-                    "indice": idx, "nome": "Descanso", "emoji": "⏸️",
-                    "duracao": config["descanso_curto"], "tipo": "descanso", "ciclo": ciclo,
-                })
+                etapas.append(
+                    {
+                        "indice": idx,
+                        "nome": "Descanso",
+                        "emoji": "⏸️",
+                        "duracao": config["descanso_curto"],
+                        "tipo": "descanso",
+                        "ciclo": ciclo,
+                    }
+                )
     return etapas
+
 
 def tempo_total(config: Config, num_ciclos: int) -> int:
     return sum(e["duracao"] for e in gerar_etapas(config, num_ciclos))
+
 
 def navegar(page: ft.Page, tela_func: Any, *args: Any, **kwargs: Any) -> None:
     page.views.clear()
     page.views.append(tela_func(page, *args, **kwargs))
     page.update()
 
+
 def _stat(label: str, value: str, color: str) -> ft.Column:
-    return ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[
-        ft.Text(label, size=10, weight=ft.FontWeight.W_500, color=ft.Colors.ON_SURFACE_VARIANT),
-        ft.Text(value, size=20, weight=ft.FontWeight.BOLD, color=color),
-    ])
+    return ft.Column(
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=4,
+        controls=[
+            ft.Text(label, size=10, weight=ft.FontWeight.W_500, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Text(value, size=20, weight=ft.FontWeight.BOLD, color=color),
+        ],
+    )
+
 
 def _controls_bar(retroceder: Any, alternar_pausa: Any, pular: Any, pausado: bool) -> ft.Container:
-    return ft.Container(padding=ft.Padding(16, 16, 16, 16),
-        content=ft.Row(alignment=ft.MainAxisAlignment.CENTER, spacing=16, controls=[
-            ft.IconButton(icon=ft.Icons.SKIP_PREVIOUS, icon_size=32, tooltip="Anterior", on_click=lambda _: retroceder()),
-            ft.FilledButton("⏸ PAUSAR" if not pausado else "▶ CONTINUAR",
-                icon=ft.Icons.PAUSE if not pausado else ft.Icons.PLAY_ARROW,
-                on_click=lambda _: alternar_pausa(),
-                style=ft.ButtonStyle(padding=ft.Padding(24, 12, 24, 12), shape=ft.RoundedRectangleBorder(radius=12))),
-            ft.IconButton(icon=ft.Icons.SKIP_NEXT, icon_size=32, tooltip="Pular", on_click=lambda _: pular()),
-        ]))
+    return ft.Container(
+        padding=ft.Padding(16, 16, 16, 16),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=16,
+            controls=[
+                ft.IconButton(
+                    icon=ft.Icons.SKIP_PREVIOUS, icon_size=32, tooltip="Anterior", on_click=lambda _: retroceder()
+                ),
+                ft.FilledButton(
+                    "⏸ PAUSAR" if not pausado else "▶ CONTINUAR",
+                    icon=ft.Icons.PAUSE if not pausado else ft.Icons.PLAY_ARROW,
+                    on_click=lambda _: alternar_pausa(),
+                    style=ft.ButtonStyle(
+                        padding=ft.Padding(24, 12, 24, 12), shape=ft.RoundedRectangleBorder(radius=12)
+                    ),
+                ),
+                ft.IconButton(icon=ft.Icons.SKIP_NEXT, icon_size=32, tooltip="Pular", on_click=lambda _: pular()),
+            ],
+        ),
+    )
+
 
 # ==================== TIMER CONTROLLER ====================
 class TimerController:
@@ -147,19 +202,28 @@ class TimerController:
         self._wake_lock: Any = None
         self._running = False
 
-        self.txt_nome: Optional[ft.Text] = None
-        self.txt_tempo: Optional[ft.Text] = None
-        self.ring_progress: Optional[ft.ProgressRing] = None
-        self.ring_track: Optional[ft.ProgressRing] = None
-        self.txt_badge: Optional[ft.Text] = None
-        self.badge_container: Optional[ft.Container] = None
-        self.txt_stats: Optional[ft.Text] = None
-        self.txt_proximo: Optional[ft.Text] = None
-        self._controls_container: Optional[ft.Container] = None
+        self.txt_nome: ft.Text | None = None
+        self.txt_tempo: ft.Text | None = None
+        self.ring_progress: ft.ProgressRing | None = None
+        self.ring_track: ft.ProgressRing | None = None
+        self.txt_badge: ft.Text | None = None
+        self.badge_container: ft.Container | None = None
+        self.txt_stats: ft.Text | None = None
+        self.txt_proximo: ft.Text | None = None
+        self._controls_container: ft.Container | None = None
 
-    def bind_ui(self, txt_nome: ft.Text, txt_tempo: ft.Text, ring_progress: ft.ProgressRing,
-                ring_track: ft.ProgressRing, txt_badge: ft.Text, badge_container: ft.Container,
-                txt_stats: ft.Text, txt_proximo: ft.Text, controls_container: ft.Container) -> None:
+    def bind_ui(
+        self,
+        txt_nome: ft.Text,
+        txt_tempo: ft.Text,
+        ring_progress: ft.ProgressRing,
+        ring_track: ft.ProgressRing,
+        txt_badge: ft.Text,
+        badge_container: ft.Container,
+        txt_stats: ft.Text,
+        txt_proximo: ft.Text,
+        controls_container: ft.Container,
+    ) -> None:
         self.txt_nome = txt_nome
         self.txt_tempo = txt_tempo
         self.ring_progress = ring_progress
@@ -297,7 +361,7 @@ class TimerController:
     async def _tocar_som_com_timeout(self, audio_obj: Any, timeout: float = 2.0) -> None:
         try:
             await asyncio.wait_for(audio_obj.play(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             print("⚠️ Timeout ao tocar som (ignorado)")
         except asyncio.CancelledError:
             pass
@@ -371,81 +435,148 @@ def tela_config(page: ft.Page) -> ft.View:
     linhas_etapas = []
     for ep in etapas[:10]:
         cor = ft.Colors.PRIMARY if ep["tipo"] == "exercicio" else ft.Colors.ON_SURFACE_VARIANT
-        linhas_etapas.append(ft.Row([
-            ft.Text(ep["emoji"], size=18),
-            ft.Text(ep["nome"], size=14, color=cor, expand=True),
-            ft.Text(fmt(ep["duracao"]), size=14, weight=ft.FontWeight.BOLD, color=cor),
-        ]))
+        linhas_etapas.append(
+            ft.Row(
+                [
+                    ft.Text(ep["emoji"], size=18),
+                    ft.Text(ep["nome"], size=14, color=cor, expand=True),
+                    ft.Text(fmt(ep["duracao"]), size=14, weight=ft.FontWeight.BOLD, color=cor),
+                ]
+            )
+        )
     if len(etapas) > 10:
-        linhas_etapas.append(ft.Text(
-            f"... e mais {len(etapas) - 10} etapas",
-            size=12, color=ft.Colors.ON_SURFACE_VARIANT, italic=True,
-        ))
+        linhas_etapas.append(
+            ft.Text(
+                f"... e mais {len(etapas) - 10} etapas",
+                size=12,
+                color=ft.Colors.ON_SURFACE_VARIANT,
+                italic=True,
+            )
+        )
 
     return ft.View(
-        route="/config", bgcolor=ft.Colors.SURFACE,
+        route="/config",
+        bgcolor=ft.Colors.SURFACE,
         appbar=ft.AppBar(
             title=ft.Text("HIIT Timer", weight=ft.FontWeight.BOLD),
-            center_title=True, bgcolor=ft.Colors.PRIMARY,
+            center_title=True,
+            bgcolor=ft.Colors.PRIMARY,
         ),
-        controls=[ft.SafeArea(content=ft.Column(expand=True, controls=[
-            ft.Container(padding=24, margin=ft.Margin(16, 16, 16, 8), border_radius=16,
-                bgcolor=ft.Colors.SURFACE_CONTAINER,
-                content=ft.Column(spacing=16, controls=[
-                    ft.Row(alignment=ft.MainAxisAlignment.SPACE_AROUND, controls=[
-                        _stat("CICLOS", str(num_ciclos), ft.Colors.PRIMARY),
-                        _stat("EXERCÍCIOS", str(len(config["exercicios"])), ft.Colors.SECONDARY),
-                        _stat("ETAPAS", str(len(etapas)), ft.Colors.TERTIARY),
-                        _stat("TEMPO", fmt(tempo), ft.Colors.PRIMARY),
-                    ]),
-                ])),
-            ft.Container(padding=16, margin=ft.Margin(16, 8, 16, 8), border_radius=16,
-                bgcolor=ft.Colors.SURFACE_CONTAINER,
-                content=ft.Column(spacing=8, controls=[
-                    ft.Text("PREVIEW DO TREINO", size=12, weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.ON_SURFACE_VARIANT),
-                    ft.Column(linhas_etapas, spacing=4),
-                ])),
-            ft.Container(padding=ft.Padding(16, 16, 16, 16),
-                content=ft.Column(spacing=12, controls=[
-                    ft.FilledButton("▶ INICIAR TREINO", icon=ft.Icons.PLAY_ARROW,
-                        on_click=iniciar_treino,
-                        style=ft.ButtonStyle(padding=ft.Padding(0, 16, 0, 16),
-                            shape=ft.RoundedRectangleBorder(radius=12)), expand=True),
-                    ft.OutlinedButton("⚙ PERSONALIZAR TREINO", icon=ft.Icons.EDIT,
-                        on_click=abrir_editor,
-                        style=ft.ButtonStyle(padding=ft.Padding(0, 16, 0, 16),
-                            shape=ft.RoundedRectangleBorder(radius=12)), expand=True),
-                ])),
-        ]))],
+        controls=[
+            ft.SafeArea(
+                content=ft.Column(
+                    expand=True,
+                    controls=[
+                        ft.Container(
+                            padding=24,
+                            margin=ft.Margin(16, 16, 16, 8),
+                            border_radius=16,
+                            bgcolor=ft.Colors.SURFACE_CONTAINER,
+                            content=ft.Column(
+                                spacing=16,
+                                controls=[
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.SPACE_AROUND,
+                                        controls=[
+                                            _stat("CICLOS", str(num_ciclos), ft.Colors.PRIMARY),
+                                            _stat("EXERCÍCIOS", str(len(config["exercicios"])), ft.Colors.SECONDARY),
+                                            _stat("ETAPAS", str(len(etapas)), ft.Colors.TERTIARY),
+                                            _stat("TEMPO", fmt(tempo), ft.Colors.PRIMARY),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ),
+                        ft.Container(
+                            padding=16,
+                            margin=ft.Margin(16, 8, 16, 8),
+                            border_radius=16,
+                            bgcolor=ft.Colors.SURFACE_CONTAINER,
+                            content=ft.Column(
+                                spacing=8,
+                                controls=[
+                                    ft.Text(
+                                        "PREVIEW DO TREINO",
+                                        size=12,
+                                        weight=ft.FontWeight.BOLD,
+                                        color=ft.Colors.ON_SURFACE_VARIANT,
+                                    ),
+                                    ft.Column(linhas_etapas, spacing=4),
+                                ],
+                            ),
+                        ),
+                        ft.Container(
+                            padding=ft.Padding(16, 16, 16, 16),
+                            content=ft.Column(
+                                spacing=12,
+                                controls=[
+                                    ft.FilledButton(
+                                        "▶ INICIAR TREINO",
+                                        icon=ft.Icons.PLAY_ARROW,
+                                        on_click=iniciar_treino,
+                                        style=ft.ButtonStyle(
+                                            padding=ft.Padding(0, 16, 0, 16), shape=ft.RoundedRectangleBorder(radius=12)
+                                        ),
+                                        expand=True,
+                                    ),
+                                    ft.OutlinedButton(
+                                        "⚙ PERSONALIZAR TREINO",
+                                        icon=ft.Icons.EDIT,
+                                        on_click=abrir_editor,
+                                        style=ft.ButtonStyle(
+                                            padding=ft.Padding(0, 16, 0, 16), shape=ft.RoundedRectangleBorder(radius=12)
+                                        ),
+                                        expand=True,
+                                    ),
+                                ],
+                            ),
+                        ),
+                    ],
+                )
+            )
+        ],
     )
 
 
 def tela_editor(page: ft.Page) -> ft.View:
     """Editor simplificado usando Column com scroll."""
     config = carregar()
-    
+
     exercicios = [ex.copy() for ex in config["exercicios"]]
-    
-    tf_curto = ft.TextField(value=str(config["descanso_curto"]), keyboard_type=ft.KeyboardType.NUMBER, width=100, text_align=ft.TextAlign.CENTER)
-    tf_ciclo = ft.TextField(value=str(config["descanso_ciclo"]), keyboard_type=ft.KeyboardType.NUMBER, width=100, text_align=ft.TextAlign.CENTER)
-    tf_ciclos = ft.TextField(value=str(config["num_ciclos"]), keyboard_type=ft.KeyboardType.NUMBER, width=100, text_align=ft.TextAlign.CENTER)
-    
+
+    tf_curto = ft.TextField(
+        value=str(config["descanso_curto"]),
+        keyboard_type=ft.KeyboardType.NUMBER,
+        width=100,
+        text_align=ft.TextAlign.CENTER,
+    )
+    tf_ciclo = ft.TextField(
+        value=str(config["descanso_ciclo"]),
+        keyboard_type=ft.KeyboardType.NUMBER,
+        width=100,
+        text_align=ft.TextAlign.CENTER,
+    )
+    tf_ciclos = ft.TextField(
+        value=str(config["num_ciclos"]), keyboard_type=ft.KeyboardType.NUMBER, width=100, text_align=ft.TextAlign.CENTER
+    )
+
     lista_column = ft.Column(spacing=8, expand=True, scroll=ft.ScrollMode.AUTO)
 
     def build_item(idx: int) -> ft.Card:
         """Constrói um card de exercício."""
         ex = exercicios[idx]
-        
+
         tf_emoji = ft.TextField(value=ex["emoji"], width=60, text_align=ft.TextAlign.CENTER)
         tf_nome = ft.TextField(value=ex["nome"], dense=True, expand=True)
-        tf_dur = ft.TextField(value=str(ex["duracao"]), width=80, keyboard_type=ft.KeyboardType.NUMBER, text_align=ft.TextAlign.CENTER)
-        
+        tf_dur = ft.TextField(
+            value=str(ex["duracao"]), width=80, keyboard_type=ft.KeyboardType.NUMBER, text_align=ft.TextAlign.CENTER
+        )
+
         btn_del = ft.IconButton(
-            icon=ft.Icons.DELETE_OUTLINE, 
-            icon_color=ft.Colors.ERROR, 
-            disabled=len(exercicios) <= 1, 
-            tooltip="Remover exercício"
+            icon=ft.Icons.DELETE_OUTLINE,
+            icon_color=ft.Colors.ERROR,
+            disabled=len(exercicios) <= 1,
+            tooltip="Remover exercício",
         )
 
         def on_emoji(e):
@@ -469,14 +600,13 @@ def tela_editor(page: ft.Page) -> ft.View:
         tf_nome.on_change = on_nome
         tf_dur.on_change = on_dur
         btn_del.on_click = on_del
-        
+
         return ft.Card(
             content=ft.Container(
                 padding=12,
                 content=ft.Row(
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER, 
-                    controls=[tf_emoji, tf_nome, tf_dur, btn_del]
-                )
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=[tf_emoji, tf_nome, tf_dur, btn_del]
+                ),
             )
         )
 
@@ -516,48 +646,71 @@ def tela_editor(page: ft.Page) -> ft.View:
     # Popula a lista inicialmente
     for i in range(len(exercicios)):
         lista_column.controls.append(build_item(i))
-    
+
     return ft.View(
-        route="/editor", bgcolor=ft.Colors.SURFACE,
+        route="/editor",
+        bgcolor=ft.Colors.SURFACE,
         appbar=ft.AppBar(
             title=ft.Text("Personalizar Treino", weight=ft.FontWeight.BOLD),
-            center_title=True, bgcolor=ft.Colors.SURFACE,
-            leading=ft.IconButton(icon=ft.Icons.ARROW_BACK, tooltip="Voltar", on_click=cancelar)
+            center_title=True,
+            bgcolor=ft.Colors.SURFACE,
+            leading=ft.IconButton(icon=ft.Icons.ARROW_BACK, tooltip="Voltar", on_click=cancelar),
         ),
         controls=[
             ft.Column(
                 expand=True,
                 controls=[
                     ft.Container(
-                        padding=16, margin=ft.Margin(16, 16, 16, 8), border_radius=12, 
+                        padding=16,
+                        margin=ft.Margin(16, 16, 16, 8),
+                        border_radius=12,
                         bgcolor=ft.Colors.SURFACE_CONTAINER,
-                        content=ft.Column(spacing=12, controls=[
-                            ft.Text("INTERVALOS E CICLOS", size=12, weight=ft.FontWeight.BOLD, 
-                                color=ft.Colors.ON_SURFACE_VARIANT),
-                            ft.Row(alignment=ft.MainAxisAlignment.SPACE_AROUND, controls=[
-                                ft.Column([ft.Text("Curto (s)", size=12), tf_curto]),
-                                ft.Column([ft.Text("Longo (s)", size=12), tf_ciclo]),
-                                ft.Column([ft.Text("Ciclos", size=12), tf_ciclos]),
-                            ]),
-                        ])
+                        content=ft.Column(
+                            spacing=12,
+                            controls=[
+                                ft.Text(
+                                    "INTERVALOS E CICLOS",
+                                    size=12,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
+                                ),
+                                ft.Row(
+                                    alignment=ft.MainAxisAlignment.SPACE_AROUND,
+                                    controls=[
+                                        ft.Column([ft.Text("Curto (s)", size=12), tf_curto]),
+                                        ft.Column([ft.Text("Longo (s)", size=12), tf_ciclo]),
+                                        ft.Column([ft.Text("Ciclos", size=12), tf_ciclos]),
+                                    ],
+                                ),
+                            ],
+                        ),
                     ),
                     ft.Container(
                         padding=ft.Padding(16, 0, 16, 0),
-                        content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_BETWEEN, controls=[
-                            ft.Text("EXERCÍCIOS", size=12, weight=ft.FontWeight.BOLD, 
-                                color=ft.Colors.ON_SURFACE_VARIANT),
-                            ft.TextButton("ADICIONAR", icon=ft.Icons.ADD, on_click=add_exercicio),
-                        ])
+                        content=ft.Row(
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            controls=[
+                                ft.Text(
+                                    "EXERCÍCIOS", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE_VARIANT
+                                ),
+                                ft.TextButton("ADICIONAR", icon=ft.Icons.ADD, on_click=add_exercicio),
+                            ],
+                        ),
                     ),
                     ft.Container(expand=True, padding=ft.Padding(16, 0, 16, 0), content=lista_column),
                     ft.Container(
-                        padding=16, bgcolor=ft.Colors.SURFACE,
-                        content=ft.Row(alignment=ft.MainAxisAlignment.END, spacing=12, controls=[
-                            ft.TextButton("CANCELAR", on_click=cancelar),
-                            ft.FilledButton("SALVAR", icon=ft.Icons.CHECK, on_click=salvar_tudo),
-                        ])
+                        padding=16,
+                        bgcolor=ft.Colors.SURFACE,
+                        content=ft.Row(
+                            alignment=ft.MainAxisAlignment.END,
+                            spacing=12,
+                            controls=[
+                                ft.TextButton("CANCELAR", on_click=cancelar),
+                                ft.FilledButton("SALVAR", icon=ft.Icons.CHECK, on_click=salvar_tudo),
+                            ],
+                        ),
                     ),
-                ]
+                ],
             )
         ],
     )
@@ -567,47 +720,74 @@ def tela_timer(page: ft.Page, config: Config, num_ciclos: int) -> ft.View:
     controller = TimerController(page, config, num_ciclos)
     page.timer_controller = controller
 
-    txt_nome = ft.Text("", size=22, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE,
-        text_align=ft.TextAlign.CENTER, max_lines=2)
-    txt_tempo = ft.Text("", size=56, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE,
-        font_family="RobotoMono")
-    ring_progress = ft.ProgressRing(value=0.0, width=260, height=260, stroke_width=14,
-        bgcolor=ft.Colors.TRANSPARENT)
-    ring_track = ft.ProgressRing(value=1.0, width=260, height=260, stroke_width=14,
-        bgcolor=ft.Colors.TRANSPARENT)
+    txt_nome = ft.Text(
+        "", size=22, weight=ft.FontWeight.W_600, color=ft.Colors.ON_SURFACE, text_align=ft.TextAlign.CENTER, max_lines=2
+    )
+    txt_tempo = ft.Text("", size=56, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_SURFACE, font_family="RobotoMono")
+    ring_progress = ft.ProgressRing(value=0.0, width=260, height=260, stroke_width=14, bgcolor=ft.Colors.TRANSPARENT)
+    ring_track = ft.ProgressRing(value=1.0, width=260, height=260, stroke_width=14, bgcolor=ft.Colors.TRANSPARENT)
     txt_badge = ft.Text("", size=12, weight=ft.FontWeight.BOLD)
-    badge_container = ft.Container(padding=ft.Padding(16, 6, 16, 6), margin=ft.Margin(0, 0, 0, 16),
-        border_radius=20, content=txt_badge)
-    txt_stats = ft.Text("", size=12, color=ft.Colors.ON_SURFACE_VARIANT,
-        text_align=ft.TextAlign.CENTER)
-    txt_proximo = ft.Text("", size=14, color=ft.Colors.ON_SURFACE_VARIANT,
-        text_align=ft.TextAlign.CENTER)
+    badge_container = ft.Container(
+        padding=ft.Padding(16, 6, 16, 6), margin=ft.Margin(0, 0, 0, 16), border_radius=20, content=txt_badge
+    )
+    txt_stats = ft.Text("", size=12, color=ft.Colors.ON_SURFACE_VARIANT, text_align=ft.TextAlign.CENTER)
+    txt_proximo = ft.Text("", size=14, color=ft.Colors.ON_SURFACE_VARIANT, text_align=ft.TextAlign.CENTER)
     controls_container = ft.Container()
 
-    ring_stack = ft.Stack(width=260, height=260, controls=[
-        ring_track, ring_progress,
-        ft.Container(content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=4, controls=[txt_nome, txt_tempo]),
-            alignment=ft.Alignment(0, 0), width=260, height=260),
-    ])
-    ring_area = ft.Container(content=ring_stack, alignment=ft.Alignment(0, 0), expand=True,
-        padding=ft.Padding(24, 16, 24, 16))
+    ring_stack = ft.Stack(
+        width=260,
+        height=260,
+        controls=[
+            ring_track,
+            ring_progress,
+            ft.Container(
+                content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4, controls=[txt_nome, txt_tempo]
+                ),
+                alignment=ft.Alignment(0, 0),
+                width=260,
+                height=260,
+            ),
+        ],
+    )
+    ring_area = ft.Container(
+        content=ring_stack, alignment=ft.Alignment(0, 0), expand=True, padding=ft.Padding(24, 16, 24, 16)
+    )
 
-    controller.bind_ui(txt_nome, txt_tempo, ring_progress, ring_track, txt_badge,
-        badge_container, txt_stats, txt_proximo, controls_container)
+    controller.bind_ui(
+        txt_nome,
+        txt_tempo,
+        ring_progress,
+        ring_track,
+        txt_badge,
+        badge_container,
+        txt_stats,
+        txt_proximo,
+        controls_container,
+    )
 
     page.run_task(controller.start)
 
     return ft.View(
-        route="/timer", bgcolor=ft.Colors.SURFACE,
+        route="/timer",
+        bgcolor=ft.Colors.SURFACE,
         appbar=ft.AppBar(
             title=ft.Text("Treino em Andamento", weight=ft.FontWeight.BOLD),
-            center_title=True, bgcolor=ft.Colors.SURFACE,
-            leading=ft.IconButton(icon=ft.Icons.ARROW_BACK, tooltip="Cancelar treino",
-                on_click=controller.parar_e_voltar)),
-        controls=[ft.SafeArea(content=ft.Column(expand=True,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            controls=[txt_stats, badge_container, ring_area, txt_proximo, controls_container]))],
+            center_title=True,
+            bgcolor=ft.Colors.SURFACE,
+            leading=ft.IconButton(
+                icon=ft.Icons.ARROW_BACK, tooltip="Cancelar treino", on_click=controller.parar_e_voltar
+            ),
+        ),
+        controls=[
+            ft.SafeArea(
+                content=ft.Column(
+                    expand=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[txt_stats, badge_container, ring_area, txt_proximo, controls_container],
+                )
+            )
+        ],
     )
 
 
@@ -621,35 +801,79 @@ def tela_finish(page: ft.Page, tempo_total_seg: int, num_ciclos: int) -> ft.View
     def configurar(_: Any) -> None:
         navegar(page, tela_config)
 
-    return ft.View(route="/finish", bgcolor=ft.Colors.SURFACE,
-        controls=[ft.SafeArea(content=ft.Container(expand=True, alignment=ft.Alignment(0, 0),
-            padding=32,
-            content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=24,
-                controls=[
-                    ft.Container(padding=24, border_radius=60, bgcolor=ft.Colors.SECONDARY_CONTAINER,
-                        content=ft.Icon(ft.Icons.EMOJI_EVENTS, size=64,
-                            color=ft.Colors.ON_SECONDARY_CONTAINER)),
-                    ft.Text("Treino Concluído! 🎉", size=28, weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.ON_SURFACE, text_align=ft.TextAlign.CENTER),
-                    ft.Text(
-                        f"Você completou {num_ciclos} ciclo{'s' if num_ciclos > 1 else ''} em {tempo_fmt}",
-                        size=16, color=ft.Colors.ON_SURFACE_VARIANT, text_align=ft.TextAlign.CENTER),
-                    ft.Container(padding=ft.Padding(16, 16, 16, 16), border_radius=16,
-                        bgcolor=ft.Colors.SURFACE_CONTAINER,
-                        content=ft.Row(alignment=ft.MainAxisAlignment.SPACE_AROUND, controls=[
-                            _stat("TEMPO", tempo_fmt, ft.Colors.PRIMARY),
-                            _stat("CICLOS", str(num_ciclos), ft.Colors.SECONDARY),
-                            _stat("STATUS", "✅ OK", ft.Colors.TERTIARY),
-                        ])),
-                    ft.Column(spacing=12, width=300, controls=[
-                        ft.FilledButton("🔁 REPETIR TREINO", on_click=repetir,
-                            style=ft.ButtonStyle(padding=ft.Padding(0, 16, 0, 16),
-                                shape=ft.RoundedRectangleBorder(radius=12)), expand=True),
-                        ft.OutlinedButton("⚙ VOLTAR À CONFIGURAÇÃO", on_click=configurar,
-                            style=ft.ButtonStyle(padding=ft.Padding(0, 16, 0, 16),
-                                shape=ft.RoundedRectangleBorder(radius=12)), expand=True),
-                    ]),
-                ])))])
+    return ft.View(
+        route="/finish",
+        bgcolor=ft.Colors.SURFACE,
+        controls=[
+            ft.SafeArea(
+                content=ft.Container(
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
+                    padding=32,
+                    content=ft.Column(
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=24,
+                        controls=[
+                            ft.Container(
+                                padding=24,
+                                border_radius=60,
+                                bgcolor=ft.Colors.SECONDARY_CONTAINER,
+                                content=ft.Icon(ft.Icons.EMOJI_EVENTS, size=64, color=ft.Colors.ON_SECONDARY_CONTAINER),
+                            ),
+                            ft.Text(
+                                "Treino Concluído! 🎉",
+                                size=28,
+                                weight=ft.FontWeight.BOLD,
+                                color=ft.Colors.ON_SURFACE,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                            ft.Text(
+                                f"Você completou {num_ciclos} ciclo{'s' if num_ciclos > 1 else ''} em {tempo_fmt}",
+                                size=16,
+                                color=ft.Colors.ON_SURFACE_VARIANT,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                            ft.Container(
+                                padding=ft.Padding(16, 16, 16, 16),
+                                border_radius=16,
+                                bgcolor=ft.Colors.SURFACE_CONTAINER,
+                                content=ft.Row(
+                                    alignment=ft.MainAxisAlignment.SPACE_AROUND,
+                                    controls=[
+                                        _stat("TEMPO", tempo_fmt, ft.Colors.PRIMARY),
+                                        _stat("CICLOS", str(num_ciclos), ft.Colors.SECONDARY),
+                                        _stat("STATUS", "✅ OK", ft.Colors.TERTIARY),
+                                    ],
+                                ),
+                            ),
+                            ft.Column(
+                                spacing=12,
+                                width=300,
+                                controls=[
+                                    ft.FilledButton(
+                                        "🔁 REPETIR TREINO",
+                                        on_click=repetir,
+                                        style=ft.ButtonStyle(
+                                            padding=ft.Padding(0, 16, 0, 16), shape=ft.RoundedRectangleBorder(radius=12)
+                                        ),
+                                        expand=True,
+                                    ),
+                                    ft.OutlinedButton(
+                                        "⚙ VOLTAR À CONFIGURAÇÃO",
+                                        on_click=configurar,
+                                        style=ft.ButtonStyle(
+                                            padding=ft.Padding(0, 16, 0, 16), shape=ft.RoundedRectangleBorder(radius=12)
+                                        ),
+                                        expand=True,
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                )
+            )
+        ],
+    )
 
 
 # ==================== ENTRY POINT ====================
