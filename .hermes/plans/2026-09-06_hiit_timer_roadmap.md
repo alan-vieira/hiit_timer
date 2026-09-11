@@ -1,137 +1,58 @@
-# HIIT Timer — Roadmap de Melhorias Arquiteturais (v1.1.0+)
+# HIIT Timer — Roadmap e Histórico Arquitetural (Atualizado para v2.2.0)
 
-> **Análise baseada em inspeção completa do codebase** (655 LOC Python, 12 arquivos, Flet 0.86.5, Android target)
-
----
-
-## 1. Resumo da Análise Atual
-
-O projeto **HIIT Timer** apresenta uma arquitetura **modular e bem organizada** para o escopo atual (timer assíncrono, 4 telas, store reativo com `@ft.observable`, componentes funcionais). Pontos fortes: separação clara `workout.py` (negócio) vs `screens/` (UI), uso correto do paradigma declarativo Flet 0.86+ (sem `UserControl`), tema MD3 configurado, build Android funcional com permissões de wake lock/vibração.
-
-**Gaps críticos identificados:**
-- **Performance no TimerScreen**: `page.update()` a cada segundo reconstrói múltiplos containers (ring, stats, banner, controls) — custo O(n) desnecessário.
-- **Persistência zero**: Configuração de exercícios/ciclos perdida ao fechar o app.
-- **Testes inexistentes**: Nenhuma infraestrutura de teste (unit/integration).
-- **DX tooling ausente**: Sem lint (Ruff), formatação (Black), pre-commit, CI/CD.
-- **Recursos Android parciais**: Wake lock OK, mas sem notificações locais nem execução em background.
+> **Status Atual:** v2.2.0 (Estável)  
+> **Última Atualização:** 2026-09-11  
+> **Arquitetura:** Monolítica (Single-file) com `TimerController`, Type Safety e ciclo de vida assíncrono robusto.
 
 ---
 
-## 2. Roadmap de Melhorias (Priorizado)
+## 1. Resumo da Evolução Arquitetural
 
-| # | Categoria | Melhoria | Impacto | Esforço | Dica Técnica |
-|---|-----------|----------|---------|---------|--------------|
-| 1 | **Arquitetura/Persistência** | **Persistência de config via `ft.storage` (SharedPreferences)** | **Alto** | **Baixo** | `page.client_storage.set("config", json.dumps(config_dict))` no `ExerciseEditorScreen.handle_save()`; ler no `main()` antes de montar `ConfigScreen`. |
-| 2 | **Performance/Flet** | **TimerScreen: atualização granular (sem `page.update()` full)** | **Alto** | **Médio** | Extrair `txt_tempo`, `ring_progress`, `txt_badge`, `top_stats_container`, `banner_container`, `controls_container` como `ft.Ref` ou variáveis de closure; chamar `.update()` **apenas nos controles mutados** (ex: `txt_tempo.update()`). Evita rebuild de `SafeArea`/`Column`/`Stack` pai. |
-| 3 | **Android/Nativo** | **Notificações locais (flutter_local_notifications via Flet)** | **Médio** | **Médio** | `page.run_js("flutterLocalNotificationsPlugin.show(...)")` ou plugin Flet nativo quando disponível; disparar no `finalizar_treino()` e agendar lembrete diário via `WorkManager` (futuro). |
-| 4 | **DX/Qualidade** | **Lint/Format + Pre-commit (Ruff + Black)** | **Médio** | **Baixo** | `ruff check . && ruff format .`; `pre-commit install` com `.pre-commit-config.yaml` (ruff, black, check-yaml). |
-| 5 | **DX/Qualidade** | **Testes unitários (pytest + flet.testing)** | **Médio** | **Médio** | Testar `workout.py` (puro Python) primeiro: `gerar_etapas`, `tempo_total_estimado`, `stats_treino`. Mockar `store` para telas. |
-| 6 | **Android/Nativo** | **Wake Lock robusto (manter tela acesa em background)** | **Médio** | **Baixo** | Já tem permissão; garantir `page.window.prevent_close = True` + `page.window.full_screen = True` no `TimerScreen`; avaliar `flet.plugins.android.wake_lock` se existir. |
-| 7 | **Arquitetura/Persistência** | **Histórico de treinos (SQLite/JSON local)** | **Baixo** | **Médio** | `page.client_storage` para lista de sessões (`{data, ciclos, tempo_total, exercicios}`); tela `HistoryScreen` nova. |
-| 8 | **DX/Qualidade** | **CI/CD GitHub Actions (build APK + lint + test)** | **Baixo** | **Médio** | Workflow `build-apk.yml`: `setup-python`, `pip install flet`, `flet build apk --release`, upload artifact. |
-| 9 | **Performance/Flet** | **Transições suaves entre telas (`ft.AnimatedSwitcher` / `page.views` animate)** | **Baixo** | **Baixo** | `page.views.clear()` → `page.views.append(View(...))` + `page.animate_route()` (Flet 0.86+ suporta transições nativas). |
-| 10 | **Arquitetura** | **Roteamento declarativo com `ft.Router`** | **Baixo** | **Médio** | Substituir `page.views` manual por `ft.Router(routes=[Route("/config", ConfigScreen), ...])` — ganha deep-link, back-stack nativo Android. |
+O projeto evoluiu de uma arquitetura modular complexa (v1.x) para uma estrutura monolítica altamente otimizada (v2.x), priorizando **simplicidade, estabilidade e performance**.
 
----
+### ✅ Gaps Críticos da v1.x (RESOLVIDOS na v2.x)
+- **Performance no Timer:** Resolvido. Atualizações granulares (`control.update()`) e pausa com zero CPU via `asyncio.Event`.
+- **Persistência:** Resolvido. Configurações salvas automaticamente em `dados.json` com fallback seguro.
+- **DX Tooling:** Resolvido. `pyproject.toml` configurado com Pylint, Black, Ruff e isort.
+- **Bugs de Navegação:** Resolvidos. Handler do botão "Voltar" do Android e `page.views.clear()` eliminam a "tela preta fantasma".
+- **Wake Lock:** Resolvido. Gerenciamento explícito via `wakepy` integrado ao ciclo de vida do `TimerController`.
 
-## 3. Próximo Passo Recomendado (Maior Valor / Menor Esforço)
-
-### ✅ **[Arquitetura/Persistência] Persistência de config via `ft.storage` (SharedPreferences)**
-
-**Por que:** Resolve a principal dor do usuário (reconfigurar treino a cada abertura), impacto imediato na UX, esforço mínimo (~30 linhas), zero breaking changes, alinhado ao CHANGELOG "Planejado".
+### 🏆 Conquistas da v2.2.0
+- **`TimerController`:** Desacoplamento total da lógica de negócio da UI, garantindo código testável e livre de efeitos colaterais.
+- **Type Safety Completa:** `TypedDict` para `Config`, `Estado` e `Etapa`, prevenindo bugs silenciosos.
+- **Tratamento de Erros Robusto:** Fim dos `except Exception:` genéricos; capturas específicas de `asyncio.CancelledError`, `TimeoutError`, etc.
+- **Editor 100% Funcional:** Rolagem fluida (`ft.Column` + scroll) e exclusão de exercícios confiável via `list comprehension`.
 
 ---
 
-### Implementação (Snippets Prontos)
+## 2. Roadmap de Melhorias Futuras (v2.3.0+)
 
-#### A) `main.py` — Carregar config ao iniciar
-```python
-# main.py — linhas 88-105 (substituir bloco async def main)
-async def main(page: ft.Page):
-    # ... window settings, theme setup ...
-
-    # 1. Carregar config salva (SharedPreferences via ft.storage)
-    saved = page.client_storage.get("workout_config")
-    if saved:
-        try:
-            import json
-            from workout import WorkoutConfig, ExercicioConfig
-            data = json.loads(saved)
-            store.config = WorkoutConfig(
-                exercicios=[ExercicioConfig(**ex) for ex in data["exercicios"]],
-                descanso_curto=data["descanso_curto"],
-                descanso_ciclo=data["descanso_ciclo"],
-            )
-            store.atualizar_etapas()
-        except Exception:
-            pass  # Fallback para defaults se JSON corrompido
-
-    # 2. Carregar num_ciclos salvo
-    saved_ciclos = page.client_storage.get("num_ciclos")
-    if saved_ciclos:
-        try:
-            store.num_ciclos = int(saved_ciclos)
-        except Exception:
-            pass
-
-    # 3. Montar tela inicial
-    page.views.append(ConfigScreen(page=page, on_iniciar=lambda nc: iniciar_treino(page, nc),
-        num_ciclos_inicial=store.num_ciclos, on_navegar_editor=lambda: navegar_editor(page)))
-    page.update()
-```
-
-#### B) `screens/exercise_editor_screen.py` — Salvar config ao confirmar
-```python
-# exercise_editor_screen.py — função handle_save (linhas 76-83)
-def handle_save():
-    store.config = WorkoutConfig(
-        exercicios=local["exercicios"],
-        descanso_curto=local["descanso_curto"],
-        descanso_ciclo=local["descanso_ciclo"],
-    )
-    store.atualizar_etapas()
-
-    # >>> NOVO: persistir no client_storage (SharedPreferences)
-    import json
-    data = {
-        "exercicios": [{"nome": ex.nome, "emoji": ex.emoji, "duracao": ex.duracao} for ex in store.config.exercicios],
-        "descanso_curto": store.config.descanso_curto,
-        "descanso_ciclo": store.config.descanso_ciclo,
-    }
-    page.client_storage.set("workout_config", json.dumps(data))
-
-    on_save()
-```
-
-#### C) `main.py` — Persistir `num_ciclos` ao iniciar treino
-```python
-# main.py — função iniciar_treino (linhas 49-54)
-def iniciar_treino(page, num_ciclos):
-    store.reiniciar_treino(num_ciclos)
-    page.client_storage.set("num_ciclos", str(num_ciclos))  # >>> NOVO
-    page.views.clear()
-    page.views.append(TimerScreen(page=page, etapas=store.etapas, indice_inicial=0,
-        on_finalizar=lambda: finalizar_treino(page), on_voltar_config=lambda: voltar_config(page)))
-    page.update()
-```
+| # | Categoria | Melhoria | Impacto | Esforço | Status / Dica Técnica |
+|---|-----------|----------|---------|---------|-----------------------|
+| 1 | **Android/Nativo** | **Notificações Locais** | Médio | Médio | *Pendente*. Usar `page.run_js` ou plugin nativo para notificar fim do treino. |
+| 2 | **Arquitetura** | **Histórico de Treinos** | Médio | Médio | *Pendente*. Salvar sessões concluídas em `dados.json` e criar `tela_historico`. |
+| 3 | **DX/Qualidade** | **CI/CD GitHub Actions** | Baixo | Baixo | *Pendente*. Workflow `build-apk.yml` para lint e build automático do APK. |
+| 4 | **DX/Qualidade** | **Testes Unitários Estratégicos** | Baixo | Médio | *Pendente*. Reintroduzir `pytest` focado apenas em funções puras (`gerar_etapas`, `tempo_total`). |
+| 5 | **UX/UI** | **Toggle Tema Claro/Escuro** | Baixo | Baixo | *Pendente*. Adicionar botão nas configurações para alternar `page.theme_mode`. |
+| 6 | **Android/Nativo** | **Execução em Background** | Baixo | Alto | *Pendente*. Avaliar plugins para manter o timer rodando com a tela bloqueada. |
 
 ---
 
-### Validação Rápida
-```bash
-# 1. Rodar app, configurar exercícios/ciclos, fechar, reabrir → config mantida
-# 2. Verificar no Android: adb shell cmd appops get com.hiit GET_PREFERENCES (deve permitir)
-# 3. Smoke test: python main.py (desktop) → funcionalidade idêntica
-```
+## 3. Histórico de Decisões Arquiteturais
+
+### v2.0.0: A Grande Simplificação (Set/2026)
+- **Decisão:** Abandonar a arquitetura modular (8+ arquivos, store reativo, 149 testes) em favor de um arquivo único (`main.py`).
+- **Motivo:** A complexidade não trazia benefícios para um app pessoal e introduzia bugs de navegação.
+- **Resultado:** Código reduzido de ~1500 para ~460 linhas, com manutenção drasticamente simplificada.
+
+### v2.1.0: Polimento e Recursos Nativos (Set/2026)
+- **Decisão:** Adicionar `flet-audio` e `wakepy` sem complicar o loop principal.
+- **Resultado:** Feedback sonoro (countdown 3-2-1) e tela sempre ligada durante o treino.
+
+### v2.2.0: Robustez e Type Safety (Set/2026)
+- **Decisão:** Refatorar o loop do timer para uma classe `TimerController` com gerenciamento explícito de estado e tarefas.
+- **Resultado:** Eliminação de vazamentos de memória, pausa com zero CPU e score Pylint elevado para ~9.5/10.
 
 ---
 
-## Próximos Passos Sugeridos (após persistência)
-
-1. **TimerScreen granular update** (Item #2) — ganho real de performance no Android (menos GC, 60fps estável).
-2. **Ruff + Black + pre-commit** (Item #4) — base de qualidade para contribuições futuras.
-3. **Testes `workout.py`** (Item #5) — lógica pura, fácil de testar, previne regressões em `gerar_etapas`.
-
----
-
-*Documento gerado em 2026-09-06 — Análise arquitetural HIIT Timer v1.0.0 → v1.1.0+*
+*Documento mantido pelo Hermes Agent. Última revisão: 2026-09-11.*
