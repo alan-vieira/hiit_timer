@@ -1,0 +1,32 @@
+{
+  "exercicios": [
+    {
+      "nome": "Polichinelo",
+      "emoji": "🤸",
+      "duracao": 60
+    },
+    {
+      "nome": "Elevação de Joelhos",
+      "emoji": "🦵",
+      "duracao": 60
+    },
+    {
+      "nome": "Crucifixo",
+      "emoji": "🦋",
+      "duracao": 60
+    },
+    {
+      "nome": "Elevação de Braços",
+      "emoji": "💪",
+      "duracao": 60
+    },
+    {
+      "nome": "Agachamento",
+      "emoji": "🏋️",
+      "duracao": 60
+    }
+  ],
+  "descanso_curto": 30,
+  "descanso_ciclo": 60,
+  "num_ciclos": 3
+}

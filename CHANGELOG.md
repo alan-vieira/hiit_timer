@@ -7,6 +7,36 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [2.2.0] - 2026-09-11
+
+### ✨ Adicionado
+- **TimerController** — classe que encapsula toda a lógica do cronômetro (separação UI/estado/ciclo de vida assíncrono)
+- Type Safety completa com `TypedDict` para `Config`, `Estado` e `Etapa`
+- Pausa eficiente com `asyncio.Event` (zero CPU quando pausado)
+- Tratamento de erros específico (sem `except Exception` genérico)
+- Flag `_running` para controle explícito do ciclo de vida
+- Limpeza automática de tasks ao navegar entre telas
+
+### 🐛 Corrigido
+- `TypeError: handler must be a coroutine function` — sintaxe correta de `page.run_task(func, arg1, arg2)`
+- `Future can't be used in await` — `stop()` agora é síncrono
+- `AttributeError: no attribute 'retroceder'` — método restaurado
+- `ListView Control must be added to the page first` — população direta antes do `return`
+- `AttributeError: module 'flet.controls.padding' has no attribute 'only'` — substituído por `ft.Padding(0,0,0,16)`
+- Rolagem quebrada no editor — `ft.Column(scroll=AUTO)` em vez de `ft.ListView` aninhado
+- Exclusão de exercícios falha — padrão robusto com `list comprehension`
+- Wake lock com `__enter__()` quebrado — gerenciamento explícito no ciclo de vida
+- Task do timer continuava em background — cancelamento explícito ao navegar
+
+### 🔧 Alterado
+- Arquitetura do timer migrada para classe `TimerController`
+- Editor simplificado com `ft.Column` + scroll
+- Áudio não-bloqueante com `page.run_task`
+- Score Pylint de 8.75/10 para ~9.5/10
+- Compatibilidade Flet 0.86.5 (uso correto de `page.dialog`, `page.snack_bar`)
+
+---
+
 ## [2.1.0] - 2026-09-10
 
 ### ✨ Adicionado
@@ -127,13 +157,4 @@ A v2.0.0 adota uma estrutura **monolítica (single-file)** priorizando simplicid
 
 ---
 
-## [Unreleased]
-
-### Planejado
-- Histórico de treinos realizados
-- Notificações locais para próximos treinos
-- Suporte a iOS
-- Testes automatizados (reintrodução estratégica)
-- Toggle tema claro/escuro
-- Som nas transições de fase
-- Salvamento do estado do timer (se fechar o app no meio do treino)
+*Documento de referência. Última atualização: Setembro 2026 (v2.2.0).*
