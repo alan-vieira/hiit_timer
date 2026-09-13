@@ -1,6 +1,6 @@
 [project]
 name = "hiit-timer"
-version = "2.2.0"
+version = "2.2.1"
 description = "Cronômetro HIIT simples e funcional"
 readme = "README.md"
 requires-python = ">=3.12"

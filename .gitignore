@@ -26,6 +26,9 @@ env/
 ENV/
 .venv/
 
+# Runtime generated
+dados.json
+
 # Flet
 .flet/
 

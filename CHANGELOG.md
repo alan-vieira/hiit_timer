@@ -7,6 +7,24 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [2.2.1] - 2026-09-12
+
+### ✨ Adicionado
+- **Botão "🚪 SAIR DO APP"** na tela de configuração — encerra o processo completamente (`sys.exit(0)`) no Android
+- **Handler `on_view_pop`** — intercepta o botão físico "Voltar" do Android nas rotas `/timer`, `/editor`, `/finish`, para o timer ativo antes de navegar de volta para a configuração
+- **Handler `on_route_change`** — detecta retorno programático à tela de configuração (`/config`) e para timer ativo se estiver rodando
+
+### 🐛 Corrigido
+- **Áudio funcionando no Android** — caminhos dos arquivos de áudio corrigidos (removido prefixo `assets/` que causava falha no Android); serviços de áudio (`flet_audio.Audio`) registrados via `page.services.extend()` **ANTES** da primeira view ser montada; arquivos convertidos de `.wav` para `.mp3` para compatibilidade total com Android
+- **Fechamento correto do app** — wake lock liberado corretamente no método `TimerController.stop()`; task assíncrona do timer cancelada explicitamente ao sair; processo não fica mais rodando em background após fechar o app
+
+### 🔧 Alterado
+- Arquivos de áudio renomeados: `.wav` → `.mp3` (`som_inicio.mp3`, `som_intervalo.mp3`, `som_countdown.mp3`, `som_fim.mp3`)
+- Registro dos serviços de áudio movido para o topo da função `main()` (linhas 909-919), garantindo inicialização antes de qualquer navegação
+- `ft.run(main, assets_dir="assets")` mantido para servir os assets corretamente no build Android
+
+---
+
 ## [2.2.0] - 2026-09-11
 
 ### ✨ Adicionado
@@ -157,4 +175,4 @@ A v2.0.0 adota uma estrutura **monolítica (single-file)** priorizando simplicid
 
 ---
 
-*Documento de referência. Última atualização: Setembro 2026 (v2.2.0).*
+*Documento de referência. Última atualização: Setembro 2026 (v2.2.1).*
