@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import sys
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -249,19 +250,26 @@ class TimerController:
         self._task = self.page.run_task(self._timer_loop)
 
     def stop(self) -> None:
+        print("⏹️ Parando timer e limpando recursos...")
         self._running = False
         self._pause_event.set()
+
+        # ✅ Cancela a task do timer
         if self._task is not None:
             try:
                 self._task.cancel()
-            except Exception:
-                pass
+                print("✅ Task do timer cancelada")
+            except Exception as e:
+                print(f"⚠️ Erro ao cancelar task: {e}")
             self._task = None
+
+        # ✅ Libera o wake lock
         if self._wake_lock is not None:
             try:
                 self._wake_lock.__exit__(None, None, None)
-            except Exception:
-                pass
+                print("✅ Wake lock liberado")
+            except Exception as e:
+                print(f"⚠️ Erro ao liberar wake lock: {e}")
             self._wake_lock = None
 
     async def _timer_loop(self) -> None:
@@ -432,6 +440,16 @@ def tela_config(page: ft.Page) -> ft.View:
     def abrir_editor(_: Any) -> None:
         navegar(page, tela_editor)
 
+    # ✅ NOVO: Botão para sair do app (Android)
+    def sair_do_app(_: Any) -> None:
+        print("🚪 Usuário clicou em sair")
+        # Para qualquer timer ativo
+        if hasattr(page, "timer_controller") and page.timer_controller:
+            page.timer_controller.stop()
+
+        # Força o fechamento
+        sys.exit(0)
+
     linhas_etapas = []
     for ep in etapas[:10]:
         cor = ft.Colors.PRIMARY if ep["tipo"] == "exercicio" else ft.Colors.ON_SURFACE_VARIANT
@@ -527,6 +545,12 @@ def tela_config(page: ft.Page) -> ft.View:
                                             padding=ft.Padding(0, 16, 0, 16), shape=ft.RoundedRectangleBorder(radius=12)
                                         ),
                                         expand=True,
+                                    ),
+                                    # ✅ NOVO: Botão de sair adicionado aqui
+                                    ft.TextButton(
+                                        "🚪 SAIR DO APP",
+                                        on_click=sair_do_app,
+                                        style=ft.ButtonStyle(color=ft.Colors.ERROR),
                                     ),
                                 ],
                             ),
@@ -882,23 +906,24 @@ async def main(page: ft.Page) -> None:
     page.theme_mode = ft.ThemeMode.DARK
     page.theme = ft.Theme(color_scheme_seed="#9C27B0", use_material3=True)
 
-    navegar(page, tela_config)
-
-    som_inicio = fta.Audio(src="assets/som_inicio.wav", autoplay=False, volume=0.8)
-    som_intervalo = fta.Audio(src="assets/som_intervalo.wav", autoplay=False, volume=0.8)
-    som_countdown = fta.Audio(src="assets/som_countdown.wav", autoplay=False, volume=0.6)
-    som_fim = fta.Audio(src="assets/som_fim.wav", autoplay=False, volume=1.0)
+    # ✅ 1. Registrar os audios ANTES de qualquer view
+    som_inicio = fta.Audio(src="som_inicio.mp3", autoplay=False, volume=0.8)
+    som_intervalo = fta.Audio(src="som_intervalo.mp3", autoplay=False, volume=0.8)
+    som_countdown = fta.Audio(src="som_countdown.mp3", autoplay=False, volume=0.6)
+    som_fim = fta.Audio(src="som_fim.mp3", autoplay=False, volume=1.0)
 
     page.services.extend([som_inicio, som_intervalo, som_countdown, som_fim])
-
     page.som_inicio = som_inicio
     page.som_intervalo = som_intervalo
     page.som_countdown = som_countdown
     page.som_fim = som_fim
 
+    # ✅ 2. Handler do back button (único evento confiável no Android)
     def on_view_pop(e: ft.ViewPopEvent) -> None:
+        print(f"🔙 Back button pressionado na rota: {page.route}")
         if page.route in ["/timer", "/editor", "/finish"]:
             if hasattr(page, "timer_controller") and page.timer_controller:
+                print("⏹️ Parando timer antes de voltar...")
                 page.timer_controller.stop()
             navegar(page, tela_config)
             e.prevent_default = True
@@ -906,6 +931,20 @@ async def main(page: ft.Page) -> None:
             e.prevent_default = False
 
     page.on_view_pop = on_view_pop
+
+    # ✅ 3. Handler para quando a rota muda (detecta fechamento indireto)
+    def on_route_change(e: ft.RouteChangeEvent) -> None:
+        print(f"🔄 Rota mudou para: {e.route}")
+        # Se voltar para a raiz e o timer estava rodando, para ele
+        if e.route == "/config" and hasattr(page, "timer_controller") and page.timer_controller:
+            if page.timer_controller._running:
+                print("⏹️ Timer estava rodando, parando...")
+                page.timer_controller.stop()
+
+    page.on_route_change = on_route_change
+
+    # ✅ 4. Só agora monta a primeira view
+    navegar(page, tela_config)
 
 
 if __name__ == "__main__":
